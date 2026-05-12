@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Pygame
+*.pyd
+*.mpy
+arkanoid_save.json
+arkanoid_high_scores.json
+arkanoid_keybindings.json
+arkanoid_settings.json
+arkanoid_stats.json
+
+# Benchmark outputs
+*_benchmark*.json
+*_comparison*.json
+*_report.md
+*_longrun*.json
+full_game_results.json
+level_benchmark.json
+gap_benchmark.json
+skill_benchmark_results.json
+run_benchmarks.py
+run_bot_comparison.py
+run_full_benchmark.py
+run_full_game_benchmark.py
+run_late_benchmark.py
+run_level_benchmark.py
+run_multi_bot_benchmark.py
+run_probot_longrun.py
+run_skill_benchmark.py
+
+# Ralph workspace
+.ralph/
+.r Ralph/
+
+# Archives
+*.tar.gz
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
