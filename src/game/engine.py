@@ -29,13 +29,16 @@ from game.entities.paddle import Paddle
 from game.entities.ball import Ball
 from game.entities.brick import BRICK_KIND_INFO, BrickGrid, BrickKind
 from game.entities.enemy import BaseEnemy, BossEnemy, Enemy, EnemyShot
+from game.roguelite.bullet import LaserBullet
 from game.input import ACTIONS, KeyBindings
 from game.roguelite.skill import Skill, SkillType, SkillCard, SKILL_GUIDE, SKILL_META, skill_synergy, skill_upgrade_hint
 from game.skill_descriptions import get_description, HIGH_SCORE_LIMIT
 import game.roguelite.effects as effects_module
 from game.roguelite.effects import RunState
-from game.roguelite.bullet import LaserBullet
 from game.particles.particle import Particle
+
+# Android touch support
+from game.android_touch import AndroidInput
 
 SAVE_VERSION = 1
 STATS_VERSION = 1
@@ -130,6 +133,9 @@ class GameEngine:
         # Fonts
         pygame.font.init()
 
+        # Android touch input (initialized lazily — only created if MOUSEBUTTONDOWN or FINGERDOWN detected)
+        self.android_input = AndroidInput()
+
         # State dispatch tables
         self._SAVEABLE_STATES = ("PLAYING", "PAUSED", "SKILL_SELECTION", "LEVEL_SUMMARY", "BRICK_INTRO", "BOSS_INTRO")
         self._KEYDOWN_HANDLERS = {
@@ -184,9 +190,19 @@ class GameEngine:
             self.draw()
 
     def handle_events(self):
-        for event in pygame.event.get():
+        # Process Android touch events before standard event handling
+        raw_events = pygame.event.get()
+        self.android_input.update_touch_events(raw_events, self.width, self.height)
+
+        for event in raw_events:
             if event.type == pygame.QUIT:
                 self.running = False
+                continue
+
+            # Skip raw finger events on Android (handled by AndroidInput)
+            if event.type in (pygame.FINGERDOWN, pygame.FINGERUP, pygame.FINGERMOTION):
+                continue
+
             if event.type == pygame.KEYDOWN:
                 if self.state in ("CONTROLS", "SETTINGS", "SKILL_GUIDE"):
                     self._handle_keydown_modal(event)
@@ -231,6 +247,18 @@ class GameEngine:
                 handler = self._MOUSE_HANDLERS.get(self.state)
                 if handler:
                     handler(event)
+
+        # Handle Android menu tap (tap not on a virtual button)
+        menu = self.android_input.menu_action()
+        if menu:
+            action, pos = menu
+            if action == "confirm":
+                # Treat as mouse click in menu states
+                handler = self._MOUSE_HANDLERS.get(self.state)
+                if handler:
+                    # Create a synthetic mouse event
+                    click_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1})
+                    handler(click_event)
 
         # Key-polling for held-down confirm in certain states
         poll_handler = self._POLL_HANDLERS.get(self.state)
@@ -512,7 +540,11 @@ class GameEngine:
             return
 
         keys = pygame.key.get_pressed()
-        self.paddle.move(self.width, keys, self.keybindings)
+
+        # Android touch: get paddle target from finger position
+        touch_x = self.android_input.paddle_target_x(self.width)
+
+        self.paddle.move(self.width, keys, self.keybindings, touch_x=touch_x)
         self.update_helper_paddles()
         self.update_active_skills(keys, dt)
         
@@ -1021,12 +1053,15 @@ class GameEngine:
     def update_active_skills(self, keys, dt):
         self.cannon_cooldown = max(0, self.cannon_cooldown - dt)
         self.seeker_cooldown = max(0, self.seeker_cooldown - dt)
-        self.gravity_well_active = self.keybindings.action_down(keys, "down") and effects_module.skill_count(self.selected_skills, SkillType.GRAVITY_WELL) > 0
+        self.gravity_well_active = (
+            self.keybindings.action_down(keys, "down")
+            or self.android_input.wants_action("down")
+        ) and effects_module.skill_count(self.selected_skills, SkillType.GRAVITY_WELL) > 0
         if self.gravity_well_active and not self.gravity_well_was_active:
             self.audio.play("well", 0.65)
         self.gravity_well_was_active = self.gravity_well_active
 
-        if self.keybindings.action_down(keys, "up"):
+        if self.keybindings.action_down(keys, "up") or self.android_input.wants_action("up"):
             self.fire_cannon()
         self.fire_seeker()
 
@@ -1524,7 +1559,11 @@ class GameEngine:
             draw_fn = self._DRAW_DISPATCH.get(self.state)
             if draw_fn:
                 draw_fn()
-        
+
+        # Draw Android virtual buttons on top of everything
+        if self.state in ("PLAYING", "PAUSED"):
+            self.android_input.draw(self.screen, self.width, self.height)
+
         pygame.display.flip()
 
     def draw_playing(self):

@@ -23,22 +23,33 @@ class Paddle:
         self.width_bonus += amount
         self.update_rect()
 
-    def move(self, screen_width, keys, keybindings=None):
-        self.last_move_direction = 0
-        left_pressed = keybindings.action_down(keys, "left") if keybindings else keys[pygame.K_LEFT]
-        right_pressed = keybindings.action_down(keys, "right") if keybindings else keys[pygame.K_RIGHT]
+    def move(self, screen_width, keys, keybindings=None, touch_x=None):
+        """
+        Move paddle. If touch_x is provided, paddle follows that X directly.
+        Otherwise uses keyboard input.
+        """
+        if touch_x is not None:
+            # Touch follow: center paddle on finger X
+            target = touch_x - self.width // 2
+            target = max(0, min(screen_width - self.width, target))
+            self.rect.x = target
+            self.last_move_direction = 1 if target > self.rect.x else (-1 if target < self.rect.x else 0)
+        else:
+            self.last_move_direction = 0
+            left_pressed = keybindings.action_down(keys, "left") if keybindings else keys[pygame.K_LEFT]
+            right_pressed = keybindings.action_down(keys, "right") if keybindings else keys[pygame.K_RIGHT]
 
-        if left_pressed:
-            self.rect.x -= self.speed
-            self.last_move_direction = -1
-        if right_pressed:
-            self.rect.x += self.speed
-            self.last_move_direction = 1
-        
-        if self.rect.x < 0:
-            self.rect.x = 0
-        if self.rect.x + self.width > screen_width:
-            self.rect.x = screen_width - self.width
+            if left_pressed:
+                self.rect.x -= self.speed
+                self.last_move_direction = -1
+            if right_pressed:
+                self.rect.x += self.speed
+                self.last_move_direction = 1
+
+            if self.rect.x < 0:
+                self.rect.x = 0
+            if self.rect.x + self.width > screen_width:
+                self.rect.x = screen_width - self.width
         self.x = self.rect.x
 
     def update_rect(self):
