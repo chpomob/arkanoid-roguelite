@@ -147,23 +147,25 @@ LAYOUT_PREDICATES = {
 
 
 class BrickGrid:
-    def __init__(self, screen_width, screen_height, cols=10, rows=5, level=1, top=164, boss_id=None, seed=None):
+    def __init__(self, viewport, cols=10, rows=5, level=1, top_n=0.272, boss_id=None, seed=None):
+        self.vp = viewport
         self.cols = cols
         self.rows = rows
         self.bricks = []
         self.level = level
         self.boss_id = boss_id
         self.boss_definition = boss_by_id(boss_id) if boss_id else None
-        self.padding = 10
-        self.brick_width = (screen_width - (self.padding * (cols + 1))) // cols
-        self.brick_height = 25
-        self.top = top
+        self.padding_n = viewport.legacy_s(10)  # 10/768 ≈ 0.013
+        bw_total = 1.0 - (self.padding_n * (cols + 1))
+        self.brick_nw = bw_total / cols
+        self.brick_nh = viewport.legacy_y(25)  # 25/768 ≈ 0.0326
+        self.top_n = top_n
         self.layout_name = self.layout_for_level(level, self.boss_definition, seed=seed)
         self.theme_name = self.theme_for_level(level, self.boss_definition, seed=seed)
-        self._create_grid(screen_width, level)
+        self._create_grid(level)
 
-    def _create_grid(self, screen_width, level):
-        current_y = self.top
+    def _create_grid(self, level):
+        current_ny = self.top_n
         palette_colors = [
             RETRO_PALETTE["brick1"],
             RETRO_PALETTE["brick2"],
@@ -172,16 +174,16 @@ class BrickGrid:
             RETRO_PALETTE["accent_alt"],
         ]
         for row in range(self.rows):
-            current_x = self.padding
+            current_nx = self.padding_n
             for col in range(self.cols):
                 if self.has_brick(row, col, level):
-                    rect = pygame.Rect(current_x, current_y, self.brick_width, self.brick_height)
+                    rect = self.vp.rect_nw_nh(current_nx, current_ny, self.brick_nw, self.brick_nh)
                     kind = self.kind_for_slot(row, col, level)
                     hp = self.hp_for_slot(row, level, kind)
                     color = self.color_for_kind(kind, palette_colors[row % len(palette_colors)])
                     self.bricks.append(Brick(rect, hp, color, kind))
-                current_x += self.brick_width + self.padding
-            current_y += self.brick_height + self.padding
+                current_nx += self.brick_nw + self.padding_n
+            current_ny += self.brick_nh + self.padding_n
 
     @staticmethod
     def layout_for_level(level, boss_definition=None, seed=None):

@@ -1,0 +1,42 @@
+{
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocker",
+      "file": "TASK",
+      "line": 1,
+      "category": "correctness",
+      "description": "Aucun code ni diff reviewable n'est fourni. Le contenu est un message de demande de permission, pas l'implementation de `viewport.py` ni les modifications de `paddle.py`, `ball.py`, `engine.py` ou des tests.",
+      "suggestion": "Fournir le patch complet, le diff git, ou les fichiers modifies avant review. Sans artefact technique, le verdict ne peut pas valider la migration."
+    },
+    {
+      "id": "F2",
+      "severity": "major",
+      "file": "TASK",
+      "line": 1,
+      "category": "error_handling",
+      "description": "Le message affirme que l'ecriture de `viewport.py` a ete refusee, mais ne donne ni l'erreur exacte, ni le chemin absolu, ni la commande/outillage utilise. Cela rend le diagnostic impossible et peut masquer un probleme simple de chemin, sandbox, cwd ou permissions.",
+      "suggestion": "Inclure l'erreur brute, le chemin cible exact, l'operation tentee et l'etat du repertoire de travail. Proposer ensuite une action minimale et verifiable."
+    },
+    {
+      "id": "F3",
+      "severity": "major",
+      "file": "TASK",
+      "line": 5,
+      "category": "design",
+      "description": "La demande d'autorisation est trop large: elle demande des permissions Write/Edit pour tout le projet avant de decrire precisement les fichiers a modifier et les changements prevus. C'est un mauvais contrat de modification et augmente le risque de changements non scopes.",
+      "suggestion": "Demander uniquement les droits necessaires pour une liste de fichiers precise, ou fournir un plan de migration avec patch separe par fichier avant d'appliquer les modifications."
+    },
+    {
+      "id": "F4",
+      "severity": "minor",
+      "file": "TASK",
+      "line": 9,
+      "category": "testing",
+      "description": "Le message mentionne l'adaptation des tests sans preciser quels comportements seront couverts: conversion de coordonnees viewport, collisions, rendu, dimensions d'ecran, ou regression des entites existantes.",
+      "suggestion": "Lister les tests attendus et les invariants de migration avant implementation, notamment pour les collisions balle/paddle/briques et la compatibilite avec les dimensions existantes."
+    }
+  ],
+  "verdict": "REQUEST_CHANGES",
+  "summary": "1 blocker, 2 majors, 1 minor"
+}

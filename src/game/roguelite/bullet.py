@@ -38,5 +38,15 @@ class LaserBullet:
         if self.rect.bottom < 0 or (self.bounds_height is not None and self.rect.top > self.bounds_height):
             self.active = False
         
+    # Backward-compat aliases
+    @property
+    def ndx(self): return self.dx
+    @ndx.setter
+    def ndx(self, v): self.dx = v
+
+    @property
+    def ndy(self): return self.dy
+    @ndy.setter
+    def ndy(self, v): self.dy = v
     def draw(self, screen):
         draw_projectile_sprite(screen, self.rect, self.color)

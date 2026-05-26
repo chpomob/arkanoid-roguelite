@@ -6,12 +6,14 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
+from game.viewport import Viewport
 import game.roguelite.effects as effects_module
 from game.roguelite.effects import RunState
 import game.particles.particle as particle_module
 import game.entities.paddle as paddle_module
 from game.roguelite.skill import Skill, SkillType
 import pygame
+from game.viewport import Viewport
 pygame.init()
 
 # Initialize engine mock
@@ -37,15 +39,15 @@ class TestSkills(unittest.TestCase):
 class TestEffects(unittest.TestCase):
     def test_apply_paddle_wide_effect(self):
         """Test that PaddleWide skill increases paddle width."""
-        paddle = paddle_module.Paddle(1024, 768)
-        initial_width = paddle.width
+        paddle = paddle_module.Paddle(Viewport(1024, 768))
+        initial_width = paddle.nw
         
         # Simulate 2 wide skills (stacking)
         skills = [Skill(SkillType.PADDLE_WIDE, "Wide A"), Skill(SkillType.PADDLE_WIDE, "Wide B")]
         
         effects_module.apply_skills_to_paddle(paddle, skills)
         
-        self.assertGreater(paddle.width, initial_width)
+        self.assertGreater(paddle.nw, initial_width)
 
     def test_handle_brick_hit_damage_stacking(self):
         """Test that handle_brick_hit correctly applies scaled damage."""
@@ -140,15 +142,15 @@ class TestParticle(unittest.TestCase):
     def test_particle_position_update(self):
         """Test that particle moves by its delta velocity."""
         p = particle_module.Particle(0, 0, (255, 0, 0))
-        initial_size = p.size
+        initial_size = p.nsize
         
         # Run update multiple times to ensure at least one updates
         for _ in range(100):
             p.update()
-            if p.x != 0 or p.size != initial_size:
+            if p.x != 0 or p.nsize != initial_size:
                 break
         
-        self.assertTrue(p.x != 0 or p.size != initial_size)
+        self.assertTrue(p.x != 0 or p.nsize != initial_size)
 
 
 if __name__ == '__main__':

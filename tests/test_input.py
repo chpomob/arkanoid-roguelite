@@ -8,8 +8,10 @@ import pygame
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
+from game.viewport import Viewport
 from game.entities.paddle import Paddle
 from game.input import KeyBindings
+from game.viewport import Viewport
 
 
 class TestKeyBindings(unittest.TestCase):
@@ -55,14 +57,14 @@ class TestKeyBindings(unittest.TestCase):
         """Test that A and D move the paddle via configurable bindings."""
         with tempfile.TemporaryDirectory() as tmpdir:
             bindings = KeyBindings(os.path.join(tmpdir, "keys.json"))
-            paddle = Paddle(800, 600)
+            paddle = Paddle(Viewport(800, 600))
 
             start_x = paddle.rect.x
-            paddle.move(800, {pygame.K_a: True}, bindings)
+            paddle.move({pygame.K_a: True}, bindings)
             self.assertLess(paddle.rect.x, start_x)
 
             start_x = paddle.rect.x
-            paddle.move(800, {pygame.K_d: True}, bindings)
+            paddle.move({pygame.K_d: True}, bindings)
             self.assertGreater(paddle.rect.x, start_x)
 
 

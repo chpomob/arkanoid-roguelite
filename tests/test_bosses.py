@@ -25,7 +25,7 @@ class TestBossLevels(unittest.TestCase):
     def test_boss_grid_uses_dedicated_arena(self):
         """Test that boss levels use the selected boss arena and special layout."""
         boss = boss_by_id("gate_sentinel")
-        grid = BrickGrid(800, 600, level=5, top=164, boss_id=boss.boss_id)
+        grid = BrickGrid(Viewport(800, 600), level=5, top_n=164, boss_id=boss.boss_id)
 
         self.assertEqual(grid.layout_name, boss.arena)
         self.assertEqual(grid.theme_name, boss.theme)
@@ -53,7 +53,7 @@ class TestBossLevels(unittest.TestCase):
             game.start_game(initial_skill_draft=False)
             game.level = 5
             game.current_boss_id = "gate_sentinel"
-            game.brick_grid = BrickGrid(800, 600, level=5, top=game.playfield_top + 10, boss_id=game.current_boss_id)
+            game.brick_grid = BrickGrid(Viewport(800, 600), level=5, top_n=game.playfield_top_n + 10, boss_id=game.current_boss_id)
             game.spawn_boss()
             for brick in game.brick_grid.bricks:
                 brick.active = False
@@ -71,7 +71,7 @@ class TestBossLevels(unittest.TestCase):
             game = GameEngine(800, 600, save_path=save_path)
             game.level = 5
             game.current_boss_id = "pulse_mantis"
-            game.brick_grid = BrickGrid(800, 600, level=5, top=game.playfield_top + 10, boss_id=game.current_boss_id)
+            game.brick_grid = BrickGrid(Viewport(800, 600), level=5, top_n=game.playfield_top_n + 10, boss_id=game.current_boss_id)
             boss = game.spawn_boss()
             boss.hp = 4
             game.save_run()

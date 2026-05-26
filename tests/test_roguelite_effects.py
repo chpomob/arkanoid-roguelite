@@ -14,8 +14,8 @@ class TestMultiBallSkill(unittest.TestCase):
     def test_handle_skills_multi_ball_creates_balls(self):
         """Test that Multi-Ball skill correctly appends new balls to the engine."""
         engine = mock.MagicMock()
-        engine.width = 1024
-        engine.height = 768
+        engine.viewport.w = 1024
+        engine.viewport.h = 768
         engine.paddle.rect = mock.MagicMock()
         engine.balls = []
         
@@ -38,8 +38,8 @@ class TestMultiBallSkill(unittest.TestCase):
     def test_handle_skills_multi_ball_stack(self):
         """Test that applying multiple Multi-Ball skills creates more balls."""
         engine = mock.MagicMock()
-        engine.width = 1024
-        engine.height = 768
+        engine.viewport.w = 1024
+        engine.viewport.h = 768
         engine.paddle.rect = mock.MagicMock()
         engine.balls = []
         
@@ -57,8 +57,8 @@ class TestMultiBallSkill(unittest.TestCase):
         rs = RunState()
         
         engine = mock.MagicMock()
-        engine.width = 1024
-        engine.height = 768
+        engine.viewport.w = 1024
+        engine.viewport.h = 768
         engine.paddle.rect = mock.MagicMock()
         engine.balls = []
         

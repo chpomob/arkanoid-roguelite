@@ -74,11 +74,11 @@ class TestSpecialBrickEffects(unittest.TestCase):
             pulse = Brick(pygame.Rect(100, 100, 40, 20), hp=2, kind=BrickKind.PULSE)
             ball = game.balls[0]
             ball.rect.centerx = pulse.rect.right + 5
-            ball.dx = 0
+            ball.ndx = 0
 
             game.handle_special_brick_effects(pulse, ball, destroyed=False)
 
-            self.assertGreater(ball.dx, 0)
+            self.assertGreater(ball.ndx, 0)
 
     def test_charge_brick_adds_energy_on_destroy(self):
         """Test that charge bricks reward energy without requiring a skill."""

@@ -15,19 +15,19 @@ class TestControlSkill(unittest.TestCase):
     def test_control_applies_to_all_balls(self):
         """Test that Control improves every active ball."""
         engine = mock.MagicMock()
-        engine.width = 1024
-        engine.height = 768
+        engine.viewport.w = 1024
+        engine.viewport.h = 768
         engine.paddle.rect = mock.MagicMock()
 
         balls = []
         for center in ((100, 100), (120, 100)):
             ball = mock.MagicMock()
             ball.speed = 5
-            ball.base_size = 12
-            ball.size = 12
-            ball.x, ball.y = center
+            ball.base_nsize = 12
+            ball.nsize = 12
+            ball.nx, ball.ny = center
             ball.rect.center = center
-            ball.rect.size = (12, 12)
+            ball.rect.nsize = (12, 12)
             ball.max_bounce_angle = 1.0
             ball.center_nudge = 0.13
             balls.append(ball)

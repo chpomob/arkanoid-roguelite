@@ -1,5 +1,6 @@
 """Tests for the Brick entities"""
 import pygame
+from game.viewport import Viewport
 import sys
 import os
 import unittest
@@ -51,7 +52,7 @@ class TestBrickGrid(unittest.TestCase):
     def test_grid_generation(self):
         """Test that the brick grid generates correctly."""
         width, height = 1024, 768
-        grid = BrickGrid(width, height, cols=10, rows=5)
+        grid = BrickGrid(Viewport(width, height), cols=10, rows=5)
         
         # Check that grid stores its configuration
         self.assertEqual(grid.cols, 10)
@@ -61,7 +62,7 @@ class TestBrickGrid(unittest.TestCase):
 
     def test_damage_brick_grid(self):
         """Test damaging bricks in the grid."""
-        grid = BrickGrid(1024, 768, cols=2, rows=2)
+        grid = BrickGrid(Viewport(1024, 768), cols=2, rows=2)
         self.assertEqual(len(grid.bricks), 4)
         
         # Damage first brick
@@ -75,16 +76,16 @@ class TestBrickGrid(unittest.TestCase):
 
     def test_level_layouts_vary(self):
         """Test that later levels use different brick dispositions."""
-        level_one = BrickGrid(1024, 768, cols=10, rows=5, level=1)
-        level_two = BrickGrid(1024, 768, cols=10, rows=5, level=2)
+        level_one = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=1)
+        level_two = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=2)
 
         self.assertNotEqual(level_one.layout_name, level_two.layout_name)
         self.assertNotEqual(len(level_one.bricks), len(level_two.bricks))
 
     def test_hp_progression_is_capped(self):
         """Test that HP increases gradually instead of jumping every level."""
-        level_three = BrickGrid(1024, 768, cols=10, rows=5, level=3)
-        level_six = BrickGrid(1024, 768, cols=10, rows=5, level=6)
+        level_three = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=3)
+        level_six = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=6)
 
         level_three_max = max(brick.max_hp for brick in level_three.bricks)
         level_six_max = max(brick.max_hp for brick in level_six.bricks)
@@ -99,15 +100,15 @@ class TestBrickGrid(unittest.TestCase):
 
     def test_special_bricks_unlock_after_early_levels(self):
         """Test that special bricks are introduced after the opening levels."""
-        level_one = BrickGrid(1024, 768, cols=10, rows=5, level=1)
-        level_six = BrickGrid(1024, 768, cols=10, rows=5, level=6)
+        level_one = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=1)
+        level_six = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=6)
 
         self.assertTrue(all(brick.kind == BrickKind.NORMAL for brick in level_one.bricks))
         self.assertTrue(any(brick.kind in (BrickKind.BOMB, BrickKind.PULSE, BrickKind.CHARGE) for brick in level_six.bricks))
 
     def test_advanced_special_bricks_unlock_later(self):
         """Test that richer brick behaviors are introduced after the basics."""
-        level_nine = BrickGrid(1024, 768, cols=10, rows=5, level=9)
+        level_nine = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=9)
         advanced = {BrickKind.REGEN, BrickKind.PRISM, BrickKind.SENTRY}
 
         self.assertTrue(any(brick.kind in advanced for brick in level_nine.bricks))
@@ -124,8 +125,8 @@ class TestBrickGrid(unittest.TestCase):
 
     def test_milestone_layouts_have_identity(self):
         """Test that milestone levels use named layouts and themes."""
-        level_five = BrickGrid(1024, 768, cols=10, rows=5, level=5)
-        level_ten = BrickGrid(1024, 768, cols=10, rows=5, level=10)
+        level_five = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=5)
+        level_ten = BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=10)
 
         self.assertEqual(level_five.layout_name, "vault")
         self.assertEqual(level_ten.layout_name, "reactor")
@@ -134,7 +135,7 @@ class TestBrickGrid(unittest.TestCase):
 
     def test_layout_pool_has_more_variety(self):
         """Test that the layout pool offers many distinct identities across all levels."""
-        layouts = {BrickGrid(1024, 768, cols=10, rows=5, level=level).layout_name for level in range(1, 20)}
+        layouts = {BrickGrid(Viewport(1024, 768), cols=10, rows=5, level=level).layout_name for level in range(1, 20)}
         self.assertGreaterEqual(len(layouts), 10)  # 14 unique across 19 levels
 
 if __name__ == '__main__':
