@@ -12,9 +12,13 @@
 
 ## Quick Start
 
-### Download (no Python needed)
+|### Download (no Python needed)
 
-[**Linux binary**](https://github.com/chpomob/arkanoid-roguelite/releases/latest) — download, extract, run:
+**Windows** — download `arkanoid-roguelite.exe` from the [latest release](https://github.com/chpomob/arkanoid-roguelite/releases/latest) and double-click.
+
+> First launch may take a few seconds (the exe unpacks itself). Windows SmartScreen may warn about an unsigned binary — click **"More info" → "Run anyway"**.
+
+**Linux** — download, extract, run:
 
 ```bash
 gunzip arkanoid-roguelite-linux.gz
