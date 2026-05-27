@@ -23,20 +23,25 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
 
-      - name: Build APK (first pass — downloads SDK/NDK)
-        continue-on-error: true
-        run: buildozer android debug || true
-
-      - name: Accept Android licenses
-        run: |
-          SDK="$HOME/.buildozer/android/platform/android-sdk"
-          SDKMANAGER="$SDK/tools/bin/sdkmanager"
-          if [ -f "$SDKMANAGER" ]; then
-            yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses
-          fi
-
       - name: Build APK
-        run: buildozer android debug
+        env:
+          BUILD_FAILED: '0'
+        run: |
+          # Run buildozer — it will download SDK and prompt for licenses
+          # Pipe yes to accept all license prompts
+          yes | buildozer android debug 2>&1 | tee /tmp/build.log
+          exit_code=${PIPESTATUS[0]}
+
+          # If it failed because of missing licenses, accept them and retry
+          if [ $exit_code -ne 0 ]; then
+            SDK="$HOME/.buildozer/android/platform/android-sdk"
+            # Accept all licenses
+            yes | "$SDK/tools/bin/sdkmanager" --sdk_root="$SDK" --licenses 2>/dev/null || true
+            # Also install build-tools explicitly
+            yes | "$SDK/tools/bin/sdkmanager" --sdk_root="$SDK" "build-tools;37.0.0" 2>/dev/null || true
+            # Retry the build
+            buildozer android debug
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
