@@ -594,16 +594,27 @@ class GameEngine:
             self.next_level()
 
     def update_particles(self):
+        # In-place removal: keep alive particles at front, trim rest.
+        alive = 0
         for p in self.particle_system:
             p.update()
-        self.particle_system = [p for p in self.particle_system if p.life > 0]
+            if p.life > 0:
+                self.particle_system[alive] = p
+                alive += 1
+        del self.particle_system[alive:]
 
     def fade_brick_hits(self):
-        for b in self.brick_grid.bricks:
+        if not self._dirty_bricks:
+            return
+        keep = []
+        for b in self._dirty_bricks:
             if b.hit_color:
                 b.hit_color = tuple(max(0, c - 50) for c in b.hit_color)
                 if b.hit_color == (0, 0, 0):
                     b.hit_color = None
+                else:
+                    keep.append(b)
+        self._dirty_bricks = keep
 
     def update_bullets(self, dt):
         for b in self.bullets:
@@ -675,6 +686,7 @@ class GameEngine:
         was_active = brick.active
         effects_module.handle_brick_hit(brick, ball, self.selected_skills, self.run_state)
         destroyed = was_active and not brick.active
+        self._dirty_bricks.append(brick)  # track for fade animation
         self.audio.play("break" if destroyed else "brick", 0.9)
         if destroyed:
             self.trigger_impact_feedback(0.05, 2)
@@ -686,6 +698,7 @@ class GameEngine:
         particle_count = 9 + dmg_count * 3 if destroyed else 5 + dmg_count
         self.spawn_particles(brick, particle_count, speed=4 if destroyed else 3, size_range=(2, 4) if destroyed else (1, 3))
         for splash_brick in splash_bricks:
+            self._dirty_bricks.append(splash_brick)
             self.award_brick_score(splash_brick, not splash_brick.active)
             self.spawn_particles(splash_brick, 4, speed=4, size_range=(1, 3))
 
@@ -698,6 +711,7 @@ class GameEngine:
                 if brick.active and bullet.rect.colliderect(brick.rect):
                     destroyed = effects_module.damage_brick(brick, getattr(bullet, "damage", 1))
                     brick.hit_color = (255, 255, 255)
+                    self._dirty_bricks.append(brick)
                     self.audio.play("break" if destroyed else "brick", 0.85)
                     if destroyed:
                         self.trigger_impact_feedback(0.04, 2)
@@ -1259,6 +1273,7 @@ class GameEngine:
         self.last_level_summary = None
         self.introduced_brick_kinds = set()
         self.pending_brick_intro_kinds = []
+        self._dirty_bricks = []  # bricks currently showing hit_color flash
         self.current_boss_id = None
         self.cannon_cooldown = 0
         self.seeker_cooldown = 0
@@ -1590,9 +1605,12 @@ class GameEngine:
             if draw_fn:
                 draw_fn()
         
-        # Scale logical surface to display
-        scaled = pygame.transform.scale(self.screen, (self.width, self.height))
-        self.display.blit(scaled, (0, 0))
+        # Scale logical surface to display — skip when 1:1 (common on web/desktop).
+        if self.viewport.sx == 1.0 and self.viewport.sy == 1.0:
+            self.display.blit(self.screen, (0, 0))
+        else:
+            scaled = pygame.transform.scale(self.screen, (self.width, self.height))
+            self.display.blit(scaled, (0, 0))
         pygame.display.flip()
 
     def draw_playing(self):
@@ -1662,16 +1680,16 @@ class GameEngine:
                             math.radians(200 + math.sin(now * 1.5) * 15),
                             math.radians(340 + math.sin(now * 1.5) * 15), 1)
 
-            # Shield hex grid pattern (subtle tech look)
+            # Shield hex grid pattern — simplified for WASM perf
             if shield_level >= 2 or self.shield_charges >= 2:
                 hex_alpha = 8 + int(pulse(1.8) * 7)
-                for hx in range(aura_rect.x + 8, aura_rect.right - 8, 12):
-                    for hy in range(aura_rect.y + 6, aura_rect.bottom - 4, 10):
-                        ox = 6 if (hy // 10) % 2 else 0
-                        if aura_rect.collidepoint(hx + ox, hy):
-                            dot = pygame.Surface((3, 3), pygame.SRCALPHA)
-                            dot.fill((*aura_color, hex_alpha))
-                            surface.blit(dot, (hx + ox, hy))
+                step_x, step_y = 14, 12
+                for hx in range(aura_rect.x + 8, aura_rect.right - 8, step_x):
+                    for hy in range(aura_rect.y + 6, aura_rect.bottom - 4, step_y):
+                        ox = 7 if (hy // step_y) % 2 else 0
+                        px, py = hx + ox, hy
+                        if aura_rect.collidepoint(px, py):
+                            pygame.draw.circle(surface, (*aura_color, hex_alpha), (px, py), 1)
 
     def draw_bottom_warning(self):
         if not any(ball.active and ball.dy > 0 and ball.rect.bottom > self.height - 150 for ball in self.balls):

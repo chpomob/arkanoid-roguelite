@@ -1,6 +1,7 @@
 import math
 import random
 import pygame
+from functools import lru_cache
 from game.assets import shade, mix
 
 RETRO_PALETTE = {
@@ -26,6 +27,7 @@ RETRO_PALETTE = {
 }
 
 
+@lru_cache(maxsize=64)
 def _font(size, bold=False):
     try:
         return pygame.font.SysFont("dejavusansmono,consolas,arial", size, bold)

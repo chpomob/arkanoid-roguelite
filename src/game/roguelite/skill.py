@@ -1,7 +1,7 @@
 import pygame
 from enum import Enum
 from game.assets import draw_skill_icon, shade
-from game.ui import draw_bar, draw_glow_text, draw_panel, draw_soft_glow, draw_text, draw_wrapped_text, RETRO_PALETTE
+from game.ui import draw_bar, draw_glow_text, draw_panel, draw_soft_glow, draw_text, draw_wrapped_text, RETRO_PALETTE, _font
 
 class SkillType(Enum):
     DAMAGE = "Dmg"
@@ -354,10 +354,7 @@ class SkillCard:
         title_x = visual_rect.x + 74
         title = self.skill.type.value.upper()
         title_font_size = 18
-        try:
-            title_font = pygame.font.SysFont("dejavusansmono,consolas,arial", title_font_size, True)
-        except Exception:
-            title_font = pygame.font.Font(None, title_font_size)
+        title_font = _font(title_font_size, True)
         max_title_width = max(40, level_label.x - title_x - 8)
         while title_font.size(title)[0] > max_title_width and len(title) > 3:
             title = title[:-1]
