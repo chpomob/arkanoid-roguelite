@@ -12,13 +12,16 @@
 
 <p align="center">
   <a href="https://github.com/chpomob/arkanoid-roguelite/releases"><img src="https://img.shields.io/github/v/release/chpomob/arkanoid-roguelite?label=release&color=success" alt="Release"></a>
+  <a href="https://chpomob.github.io/arkanoid-roguelite/"><img src="https://img.shields.io/badge/play-web-blue" alt="Play in browser"></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/python-3.10+-blue" alt="Python"></a>
   <a href="#tests"><img src="https://img.shields.io/badge/tests-196%20passing-brightgreen" alt="Tests"></a>
 </p>
 
 ## Quick Start
 
-|### Download (no Python needed)
+**🌐 Play in browser:** [chpomob.github.io/arkanoid-roguelite](https://chpomob.github.io/arkanoid-roguelite/)
+
+### Download (no Python needed)
 
 **Windows** — download `arkanoid-roguelite.exe` from the [latest release](https://github.com/chpomob/arkanoid-roguelite/releases/latest) and double-click.
 
