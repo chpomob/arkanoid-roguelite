@@ -1,6 +1,7 @@
 import pygame
 import json
 import math
+import os
 import random
 from pathlib import Path
 from random import sample
@@ -71,7 +72,11 @@ class GameEngine:
             muted=bool(self.settings.get("muted", False)),
         )
         self.screen = pygame.Surface((self.viewport.lw, self.viewport.lh))
-        self.display = pygame.display.set_mode((width, height))
+        # Android: fullscreen with hardware scaling
+        android_flags = pygame.FULLSCREEN | pygame.SCALED | pygame.NOFRAME if (
+            os.environ.get("ANDROID_APP_PATH") or os.environ.get("ANDROID_ARGUMENT")
+        ) else 0
+        self.display = pygame.display.set_mode((width, height), android_flags)
         pygame.display.set_caption("Arkanoid Roguelite - Pixel Edition")
         self.clock = pygame.time.Clock()
         self.running = True
