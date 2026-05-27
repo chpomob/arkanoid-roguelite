@@ -69,7 +69,8 @@ class GameEngine:
             volume=float(self.settings.get("sound_volume", 0.45)),
             muted=bool(self.settings.get("muted", False)),
         )
-        self.screen = pygame.display.set_mode((width, height))
+        self.screen = pygame.Surface((self.viewport.lw, self.viewport.lh))
+        self.display = pygame.display.set_mode((width, height))
         pygame.display.set_caption("Arkanoid Roguelite - Pixel Edition")
         self.clock = pygame.time.Clock()
         self.running = True
@@ -1528,12 +1529,13 @@ class GameEngine:
             if draw_fn:
                 draw_fn()
         
+        # Scale logical surface to display
+        scaled = pygame.transform.scale(self.screen, (self.width, self.height))
+        self.display.blit(scaled, (0, 0))
         pygame.display.flip()
 
     def draw_playing(self):
-        # Draw on logical 1024x768 surface, then scale to screen
-        log_w, log_h = int(self.viewport.lw), int(self.viewport.lh)
-        world = pygame.Surface((log_w, log_h), pygame.SRCALPHA)
+        world = pygame.Surface((self.viewport.lw, self.viewport.lh), pygame.SRCALPHA)
         feedback = self.paddle_feedback_timer / 0.16 if self.paddle_feedback_timer > 0 else 0.0
         self.paddle.draw(world, feedback=feedback)
         self.draw_shield_aura(world)
@@ -1548,10 +1550,8 @@ class GameEngine:
         for shot in self.enemy_shots:
             shot.draw(world)
         self.brick_grid.draw(world)
-        pygame.draw.line(world, RETRO_PALETTE["line"], (0, self.playfield_top), (log_w, self.playfield_top), 1)
-        # Scale logical world to fit screen
-        scaled = pygame.transform.scale(world, (self.width, self.height))
-        self.screen.blit(scaled, self.camera_offset())
+        pygame.draw.line(world, RETRO_PALETTE["line"], (0, self.playfield_top), (self.viewport.lw, self.playfield_top), 1)
+        self.screen.blit(world, self.camera_offset())
         self.draw_bottom_warning()
         screens.draw_hud(self.screen, self)
         screens.draw_boss_hud(self.screen, self)
