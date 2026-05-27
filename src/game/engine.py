@@ -7,6 +7,7 @@ import os
 import random
 from pathlib import Path
 from random import sample
+from typing import Protocol, TypeVar
 
 from game.bosses import boss_by_id, choose_boss_for_level, is_boss_level
 import game.screens as screens
@@ -56,6 +57,14 @@ BRICK_SCORE = {
     BrickKind.SENTRY: 34,
 }
 
+
+class ActiveEntity(Protocol):
+    active: bool
+
+
+TActive = TypeVar("TActive", bound=ActiveEntity)
+
+
 class GameEngine:
     def __init__(self, width, height, save_path="arkanoid_save.json", high_scores_path="arkanoid_high_scores.json", keybindings_path="arkanoid_keybindings.json", settings_path="arkanoid_settings.json", stats_path="arkanoid_stats.json"):
         pygame.init()
@@ -74,6 +83,8 @@ class GameEngine:
             muted=bool(self.settings.get("muted", False)),
         )
         self.screen = pygame.Surface((self.viewport.lw, self.viewport.lh))
+        self.world_surface = pygame.Surface((self.viewport.lw, self.viewport.lh), pygame.SRCALPHA)
+        self._warning_overlay = pygame.Surface((self.width, 34), pygame.SRCALPHA)
         # Android: fullscreen with hardware scaling
         android_flags = pygame.FULLSCREEN | pygame.SCALED | pygame.NOFRAME if (
             os.environ.get("ANDROID_APP_PATH") or os.environ.get("ANDROID_ARGUMENT")
@@ -188,6 +199,16 @@ class GameEngine:
             "SKILL_GUIDE": lambda: screens.draw_skill_guide(self.screen, self),
             "GAMEOVER": lambda: screens.draw_game_over(self.screen, self),
         }
+
+    @staticmethod
+    def _compact_active(items: list[TActive]) -> None:
+        """Remove inactive entities in-place; callers must not retain list iterators across updates."""
+        alive = 0
+        for item in items:
+            if item.active:
+                items[alive] = item
+                alive += 1
+        del items[alive:]
 
     async def run(self):
         while self.running:
@@ -626,7 +647,7 @@ class GameEngine:
                     b.rect.centerx, b.rect.centery, b._trail_color, speed=1, size_range=(1, 2)))
             if b.rect.top < self.playfield_top:
                 b.active = False
-        self.bullets = [b for b in self.bullets if b.active]
+        self._compact_active(self.bullets)
 
     def update_enemies(self, dt):
         for enemy in self.enemies:
@@ -635,14 +656,14 @@ class GameEngine:
                 shots = enemy.fire()
                 self.enemy_shots.extend(shots)
                 self.audio.play("projectile", 0.45)
-        self.enemies = [enemy for enemy in self.enemies if enemy.active]
+        self._compact_active(self.enemies)
 
     def update_enemy_shots(self, dt):
         for shot in self.enemy_shots:
             shot.update(dt)
             if shot.rect.top > self.height or shot.rect.right < 0 or shot.rect.left > self.width:
                 shot.active = False
-        self.enemy_shots = [shot for shot in self.enemy_shots if shot.active]
+        self._compact_active(self.enemy_shots)
 
     def update_balls(self):
         active_balls_count = 0
@@ -677,7 +698,7 @@ class GameEngine:
                 active_balls_count += 1
 
         if active_balls_count > 0:
-            self.balls = [ball for ball in self.balls if ball.active]
+            self._compact_active(self.balls)
             self.run_state.balls_count = len(self.balls)
 
         return active_balls_count
@@ -707,24 +728,23 @@ class GameEngine:
             if not bullet.active:
                 continue
             pierce_count = effects_module.skill_count(self.selected_skills, SkillType.PIERCING_SHOTS)
-            for brick in self.brick_grid.bricks:
-                if brick.active and bullet.rect.colliderect(brick.rect):
-                    destroyed = effects_module.damage_brick(brick, getattr(bullet, "damage", 1))
-                    brick.hit_color = (255, 255, 255)
-                    self._dirty_bricks.append(brick)
-                    self.audio.play("break" if destroyed else "brick", 0.85)
-                    if destroyed:
-                        self.trigger_impact_feedback(0.04, 2)
-                    self.award_brick_score(brick, destroyed, projectile=True)
-                    self.handle_special_brick_effects(brick, None, destroyed)
-                    remaining = self.get_bullet_pierce_remaining(bullet, pierce_count)
-                    if remaining > 0:
-                        bullet.pierce_remaining = remaining - 1
-                        self.advance_piercing_bullet(bullet)
-                    else:
-                        bullet.active = False
-                    self.spawn_particles(brick, 7 if destroyed else 3, speed=4 if destroyed else 3, size_range=(2, 4) if destroyed else (1, 3))
-                    break
+            for brick in self.brick_grid.query_rect(bullet.rect):
+                destroyed = effects_module.damage_brick(brick, getattr(bullet, "damage", 1))
+                brick.hit_color = (255, 255, 255)
+                self._dirty_bricks.append(brick)
+                self.audio.play("break" if destroyed else "brick", 0.85)
+                if destroyed:
+                    self.trigger_impact_feedback(0.04, 2)
+                self.award_brick_score(brick, destroyed, projectile=True)
+                self.handle_special_brick_effects(brick, None, destroyed)
+                remaining = self.get_bullet_pierce_remaining(bullet, pierce_count)
+                if remaining > 0:
+                    bullet.pierce_remaining = remaining - 1
+                    self.advance_piercing_bullet(bullet)
+                else:
+                    bullet.active = False
+                self.spawn_particles(brick, 7 if destroyed else 3, speed=4 if destroyed else 3, size_range=(2, 4) if destroyed else (1, 3))
+                break
             if not bullet.active:
                 continue
             for enemy in self.enemies:
@@ -741,7 +761,7 @@ class GameEngine:
                         self.spawn_enemy_particles(enemy)
                         self.trigger_impact_feedback(0.04, 2)
                     break
-        self.bullets = [b for b in self.bullets if b.active]
+        self._compact_active(self.bullets)
 
     def get_bullet_pierce_remaining(self, bullet, default):
         remaining = getattr(bullet, "pierce_remaining", None)
@@ -769,7 +789,7 @@ class GameEngine:
                     self.audio.play("break", 0.75)
                     self.trigger_impact_feedback(0.04, 2)
                     break
-        self.enemies = [enemy for enemy in self.enemies if enemy.active]
+        self._compact_active(self.enemies)
 
     def handle_enemy_shot_hits(self):
         # Only the main paddle takes damage — helper paddles are projections
@@ -779,7 +799,7 @@ class GameEngine:
             if shot.rect.colliderect(self.paddle.rect):
                 shot.active = False
                 self.handle_enemy_hit_player()
-        self.enemy_shots = [shot for shot in self.enemy_shots if shot.active]
+        self._compact_active(self.enemy_shots)
 
     def handle_enemy_hit_player(self):
         if self.shield_charges > 0:
@@ -1614,7 +1634,11 @@ class GameEngine:
         pygame.display.flip()
 
     def draw_playing(self):
-        world = pygame.Surface((self.viewport.lw, self.viewport.lh), pygame.SRCALPHA)
+        world_size = (self.viewport.lw, self.viewport.lh)
+        if self.world_surface.get_size() != world_size:
+            self.world_surface = pygame.Surface(world_size, pygame.SRCALPHA)
+        world = self.world_surface
+        world.fill((0, 0, 0, 0))
         feedback = self.paddle_feedback_timer / 0.16 if self.paddle_feedback_timer > 0 else 0.0
         self.paddle.draw(world, feedback=feedback)
         self.draw_shield_aura(world)
@@ -1695,7 +1719,9 @@ class GameEngine:
         if not any(ball.active and ball.dy > 0 and ball.rect.bottom > self.height - 150 for ball in self.balls):
             return
         warning = pygame.Rect(0, self.height - 68, self.width, 34)
-        overlay = pygame.Surface(warning.size, pygame.SRCALPHA)
+        if self._warning_overlay.get_size() != warning.size:
+            self._warning_overlay = pygame.Surface(warning.size, pygame.SRCALPHA)
+        overlay = self._warning_overlay
         overlay.fill((*RETRO_PALETTE["danger"], 20 + int(pulse(5.0) * 35)))
         self.screen.blit(overlay, warning)
         pygame.draw.line(self.screen, RETRO_PALETTE["danger"], warning.topleft, warning.topright, 2)

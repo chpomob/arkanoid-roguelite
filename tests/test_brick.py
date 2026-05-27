@@ -137,5 +137,34 @@ class TestBrickGrid(unittest.TestCase):
         layouts = {BrickGrid(1024, 768, cols=10, rows=5, level=level).layout_name for level in range(1, 20)}
         self.assertGreaterEqual(len(layouts), 10)  # 14 unique across 19 levels
 
+    def test_spatial_query_returns_only_colliding_active_bricks(self):
+        """Test that spatial queries filter by rect collision and active state."""
+        grid = BrickGrid(1024, 768, cols=2, rows=2)
+        target = grid.bricks[0]
+        grid.bricks[1].active = False
+
+        matches = grid.query_rect(target.rect)
+
+        self.assertEqual(matches, [target])
+
+    def test_spatial_query_rebuilds_after_brick_list_change(self):
+        """Test that appended bricks are indexed before a query returns."""
+        grid = BrickGrid(1024, 768, cols=2, rows=2)
+        added = Brick(pygame.Rect(900, 700, 20, 20))
+        grid.bricks.append(added)
+
+        self.assertEqual(grid.query_rect(added.rect), [added])
+
+    def test_spatial_query_rebuilds_after_same_length_mutation(self):
+        """Test that replacements and reordering invalidate the spatial index."""
+        grid = BrickGrid(1024, 768, cols=2, rows=2)
+        replacement = Brick(pygame.Rect(900, 700, 20, 20))
+        grid.bricks[0] = replacement
+
+        self.assertEqual(grid.query_rect(replacement.rect), [replacement])
+
+        grid.bricks.reverse()
+        self.assertEqual(grid.query_rect(replacement.rect), [replacement])
+
 if __name__ == '__main__':
     unittest.main()

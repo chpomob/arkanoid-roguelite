@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pygame
 import random
 from enum import Enum
@@ -77,7 +79,6 @@ def _layout_fortress(row, col, level, cols, rows):
 def _layout_chevron(row, col, level, cols, rows):
     center = (cols - 1) / 2
     distance = abs(col - center)
-    # At higher levels, open more gaps
     spacing = 2 if level >= 10 else 1
     return distance <= row * spacing + 1 or row == 0 or row == rows - 1
 
@@ -150,17 +151,77 @@ class BrickGrid:
     def __init__(self, screen_width, screen_height, cols=10, rows=5, level=1, top=164, boss_id=None, seed=None):
         self.cols = cols
         self.rows = rows
-        self.bricks = []
+        self.bricks: list[Brick] = []
         self.level = level
         self.boss_id = boss_id
         self.boss_definition = boss_by_id(boss_id) if boss_id else None
         self.padding = 10
         self.brick_width = (screen_width - (self.padding * (cols + 1))) // cols
         self.brick_height = 25
+        self._spatial_cell_size = max(32, self.brick_width + self.padding, self.brick_height + self.padding)
+        self._spatial_cells: dict[tuple[int, int], list[Brick]] = {}
+        self._spatial_order: dict[int, int] = {}
+        self._spatial_signature: tuple[int, ...] = ()
+        self._spatial_dirty = True
         self.top = top
         self.layout_name = self.layout_for_level(level, self.boss_definition, seed=seed)
         self.theme_name = self.theme_for_level(level, self.boss_definition, seed=seed)
         self._create_grid(screen_width, level)
+        self.rebuild_spatial_index()
+
+    def _cell_range_for_rect(self, rect: pygame.Rect) -> tuple[range, range]:
+        cell = self._spatial_cell_size
+        left = rect.left // cell
+        right = max(left, (rect.right - 1) // cell)
+        top = rect.top // cell
+        bottom = max(top, (rect.bottom - 1) // cell)
+        return range(left, right + 1), range(top, bottom + 1)
+
+    def _brick_signature(self) -> tuple[int, ...]:
+        return tuple(id(brick) for brick in self.bricks)
+
+    def mark_spatial_dirty(self) -> None:
+        """Mark the brick lookup dirty after replacing or reordering bricks."""
+        self._spatial_dirty = True
+
+    def rebuild_spatial_index(self) -> None:
+        """Rebuild static brick lookup; brick rects are stable within a level."""
+        cells: dict[tuple[int, int], list[Brick]] = {}
+        order: dict[int, int] = {}
+        for index, brick in enumerate(self.bricks):
+            order[id(brick)] = index
+            x_cells, y_cells = self._cell_range_for_rect(brick.rect)
+            for cell_x in x_cells:
+                for cell_y in y_cells:
+                    cells.setdefault((cell_x, cell_y), []).append(brick)
+        self._spatial_cells = cells
+        self._spatial_order = order
+        self._spatial_signature = self._brick_signature()
+        self._spatial_dirty = False
+
+    def _ensure_spatial_index(self) -> None:
+        if self._spatial_dirty or self._spatial_signature != self._brick_signature():
+            self.rebuild_spatial_index()
+
+    def query_rect(self, rect: pygame.Rect, active_only: bool = True) -> list[Brick]:
+        """Return bricks whose rects collide with rect, preserving grid order."""
+        self._ensure_spatial_index()
+        seen: set[int] = set()
+        matches: list[Brick] = []
+        x_cells, y_cells = self._cell_range_for_rect(rect)
+        for cell_x in x_cells:
+            for cell_y in y_cells:
+                for brick in self._spatial_cells.get((cell_x, cell_y), ()):
+                    brick_id = id(brick)
+                    if brick_id in seen:
+                        continue
+                    seen.add(brick_id)
+                    if active_only and not brick.active:
+                        continue
+                    if rect.colliderect(brick.rect):
+                        matches.append(brick)
+        matches.sort(key=lambda brick: self._spatial_order[id(brick)])
+        return matches
 
     def _create_grid(self, screen_width, level):
         current_y = self.top
@@ -222,7 +283,6 @@ class BrickGrid:
         return predicate(row, col, level, self.cols, self.rows)
 
     def hp_for_slot(self, row, level, kind):
-        # Slightly tougher early, ramps harder at mid, aggressive at L28+
         if level <= 12:
             base_hp = 1 + min(4, (level - 1) // 4)
         elif level <= 28:
@@ -331,16 +391,19 @@ class BrickGrid:
 
     def update(self):
         self.bricks = [b for b in self.bricks if b.active]
+        self.mark_spatial_dirty()
 
     def get_brick_at(self, pos):
-        for brick in self.bricks:
-            if brick.rect.collidepoint(pos):
-                return brick
+        point = pygame.Rect(pos[0], pos[1], 1, 1)
+        matches = self.query_rect(point, active_only=False)
+        if matches:
+            return matches[0]
         return None
 
     def get_nearby_bricks(self, source, radius):
         nearby = []
-        for brick in self.bricks:
+        search = source.rect.inflate(radius * 2, radius * 2)
+        for brick in self.query_rect(search):
             if brick is source or not brick.active:
                 continue
             dx = brick.rect.centerx - source.rect.centerx

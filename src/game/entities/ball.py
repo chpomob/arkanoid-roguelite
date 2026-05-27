@@ -96,9 +96,7 @@ class Ball:
         if self.active:
             collisions = []
             for brick_layer in brick_layers:
-                for brick in brick_layer.bricks:
-                    if brick.active and self.rect.colliderect(brick.rect):
-                        collisions.append(brick)
+                collisions.extend(brick_layer.query_rect(self.rect))
             
             if collisions:
                 hit_brick = self.primary_collision_brick(collisions)

@@ -1,6 +1,7 @@
 import math
 import random
 import pygame
+from collections import OrderedDict
 from functools import lru_cache
 from game.assets import shade, mix
 
@@ -25,6 +26,11 @@ RETRO_PALETTE = {
     "text_white": (246, 250, 247),
     "danger": (255, 86, 86),
 }
+
+_GRADIENT_CACHE_LIMIT = 16
+_FOG_CACHE_LIMIT = 16
+_gradient_cache = OrderedDict()
+_fog_cache = OrderedDict()
 
 
 @lru_cache(maxsize=64)
@@ -150,6 +156,14 @@ def draw_wrapped_text(surface, text, color, rect, font_size=16, line_gap=4):
 def _draw_gradient(surface, top_color, bot_color):
     """Draw vertical gradient efficiently using block fills instead of per-pixel lines."""
     width, height = surface.get_size()
+    cache_key = (width, height, top_color, bot_color)
+    cached = _gradient_cache.get(cache_key)
+    if cached is not None:
+        _gradient_cache.move_to_end(cache_key)
+        surface.blit(cached, (0, 0))
+        return
+
+    cached = pygame.Surface((width, height))
     block_h = max(1, height // 64)  # 64 blocks instead of height lines
     for i in range(64):
         y_start = i * block_h
@@ -158,7 +172,11 @@ def _draw_gradient(surface, top_color, bot_color):
             break
         t = (y_start + y_end) / (2 * height)
         color = tuple(int(top_color[j] * (1 - t) + bot_color[j] * t) for j in range(3))
-        pygame.draw.rect(surface, color, (0, y_start, width, y_end - y_start))
+        pygame.draw.rect(cached, color, (0, y_start, width, y_end - y_start))
+    if len(_gradient_cache) >= _GRADIENT_CACHE_LIMIT:
+        _gradient_cache.popitem(last=False)
+    _gradient_cache[cache_key] = cached
+    surface.blit(cached, (0, 0))
 
 def draw_background(surface, boss=None, seed=None, theme=""):
     """Draw the background with seeded variation for replay diversity."""
@@ -334,26 +352,31 @@ def _draw_ground_fog(surface, horizon, accent):
     width, height = surface.get_size()
     ground_h = height - horizon
     fog_height = min(ground_h, int(height * 0.18))
-    fog = pygame.Surface((width, fog_height), pygame.SRCALPHA)
-    # Block-based instead of per-pixel
-    block_h = max(1, fog_height // 8)
-    for i in range(8):
-        y_start = i * block_h
-        y_end = min(fog_height, (i + 1) * block_h)
-        if y_start >= fog_height:
-            break
-        t = 1.0 - ((y_start + y_end) / 2 / max(1, fog_height))
-        alpha = int(t * t * 95)
-        pygame.draw.rect(fog, (*accent, alpha // 3), (0, y_start, width, y_end - y_start))
+    cache_key = (width, fog_height, accent)
+    fog = _fog_cache.get(cache_key)
+    if fog is None:
+        fog = pygame.Surface((width, fog_height), pygame.SRCALPHA)
+        block_h = max(1, fog_height // 8)
+        for i in range(8):
+            y_start = i * block_h
+            y_end = min(fog_height, (i + 1) * block_h)
+            if y_start >= fog_height:
+                break
+            t = 1.0 - ((y_start + y_end) / 2 / max(1, fog_height))
+            alpha = int(t * t * 95)
+            pygame.draw.rect(fog, (*accent, alpha // 3), (0, y_start, width, y_end - y_start))
+        if len(_fog_cache) >= _FOG_CACHE_LIMIT:
+            _fog_cache.popitem(last=False)
+        _fog_cache[cache_key] = fog
+    else:
+        _fog_cache.move_to_end(cache_key)
     surface.blit(fog, (0, horizon))
 
 
-def background_stars(width, height, seed=None):
-    """Generate seeded star positions for the background sky.
-    Returns list of (x, y, size, color, phase) tuples.
-    """
+@lru_cache(maxsize=128)
+def _background_stars_cached(width, height, seed_key):
     horizon = int(height * 0.62)
-    rng = random.Random(seed if seed else 42)
+    rng = random.Random(seed_key)
     stars = []
     for i in range(46):
         x = rng.randint(0, width - 1)
@@ -364,7 +387,15 @@ def background_stars(width, height, seed=None):
                     0.2 if color_variant < 0.7 else 0.55)
         phase = rng.uniform(0, 6.28)
         stars.append((x, y, size, color, phase))
-    return stars
+    return tuple(stars)
+
+
+def background_stars(width, height, seed=None):
+    """Generate seeded star positions for the background sky.
+    Returns an immutable tuple of (x, y, size, color, phase) tuples.
+    """
+    seed_key = seed if seed else 42
+    return _background_stars_cached(width, height, seed_key)
 
 
 # ── Celestial body types ──────────────────────────────────────────

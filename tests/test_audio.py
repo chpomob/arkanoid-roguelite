@@ -42,6 +42,42 @@ class TestSoundManager(unittest.TestCase):
 
         self.assertEqual(pitched, [(150, 0.1, 0.2)])
 
+    def test_rapid_projectile_sound_is_throttled(self):
+        """Test that rapid repeated projectile sounds are rate-limited."""
+        audio = SoundManager(enabled=False)
+        sound = mock.Mock()
+        audio.enabled = True
+        audio.sounds = {"projectile": [sound]}
+        times = iter([10.0, 10.01, 10.05])
+        current = [10.05]
+
+        def monotonic():
+            try:
+                current[0] = next(times)
+            except StopIteration:
+                pass
+            return current[0]
+
+        with mock.patch("game.audio.time.monotonic", side_effect=monotonic):
+            audio.play("projectile")
+            audio.play("projectile")
+            audio.play("projectile")
+
+        self.assertEqual(sound.play.call_count, 2)
+
+    def test_repeated_same_volume_does_not_call_set_volume_again(self):
+        """Test that cached volume avoids redundant mixer calls."""
+        audio = SoundManager(enabled=False)
+        sound = mock.Mock()
+        audio.enabled = True
+        audio.sounds = {"brick": [sound]}
+
+        audio.play("brick", 0.5)
+        audio.play("brick", 0.5)
+
+        self.assertEqual(sound.play.call_count, 2)
+        self.assertEqual(sound.set_volume.call_count, 1)
+
 
 if __name__ == '__main__':
     unittest.main()
