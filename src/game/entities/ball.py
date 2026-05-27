@@ -33,8 +33,8 @@ class Ball:
         # Start centered horizontally, mid-screen vertically
         self.nx = 0.5
         self.ny = 0.5 + y_off
-        self.ndx = (self.speed * 0.1) * (1 if random.random() > 0.5 else -1)
-        self.ndy = -self.speed * 0.2
+        self.ndx = (self.speed * 0.5) * (1 if random.random() > 0.5 else -1)
+        self.ndy = -self.speed
         self.color = (255, 0, 255)
         self.rect = self._compute_rect()
         self.paddle = paddle
@@ -192,7 +192,7 @@ class Ball:
         offset = (self.rect.centerx - paddle_rect.centerx) / half_width
         offset = max(-1.0, min(1.0, offset))
         angle = self.paddle_bounce_angle(offset, self.ndx, self.ndy)
-        speed = max(0.01, math.hypot(self.ndx, self.ndy), self.speed * 0.2)
+        speed = max(self.vp.nspeed(1), math.hypot(self.ndx, self.ndy), self.speed)
         self.ndx = speed * math.sin(angle)
         self.ndy = -abs(speed * math.cos(angle))
         self.rect.bottom = paddle_rect.top

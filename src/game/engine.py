@@ -1894,7 +1894,7 @@ class GameEngine:
         if len(self.balls) >= 7:
             return False
         new_ball = self.clone_ball(ball)
-        new_ball.ndx = -ball.ndx if abs(ball.ndx) > 0.01 else ball.speed * 0.05
+        new_ball.ndx = -ball.ndx if abs(ball.ndx) > ball.vp.nspeed(0.5) else ball.speed * 0.5
         new_ball.ndy = -abs(ball.ndy) if ball.ndy > 0 else ball.ndy
         self.balls.append(new_ball)
         self.run_state.balls_count = len(self.balls)
