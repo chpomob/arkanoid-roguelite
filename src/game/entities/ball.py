@@ -52,7 +52,7 @@ class Ball:
         self.y += self.dy
         self.sync_rect_to_position()
 
-        trail_length = max(4, min(9, int(math.hypot(self.dx, self.dy))))
+        trail_length = max(3, min(6, int(math.hypot(self.dx, self.dy))))
         while len(self.trail) >= trail_length:
             self.trail.pop(0)
         self.trail.append((self.rect.centerx, self.rect.centery))

@@ -38,8 +38,8 @@ def handle_skills(engine, selected_skills: list, run_state: RunState, heal_alrea
         run_state.balls_count += 1
         # Spawn split particles at the paddle
         from game.particles.particle import Particle
-        for i in range(12):
-            angle = math.radians(i * 30)
+        for i in range(8):
+            angle = math.radians(i * 45)
             engine.particle_system.append(Particle(
                 engine.paddle.rect.centerx, engine.paddle.rect.centery - 5,
                 (100, 220, 255), speed=4, size_range=(2, 4),
@@ -68,11 +68,11 @@ def spawn_vampire_particles(engine):
     """Spawn crimson energy swirl when Vampirism heals."""
     from game.particles.particle import Particle
     cx, cy = engine.paddle.rect.centerx, engine.paddle.rect.y
-    for i in range(10):
+    for i in range(8):
         angle = random.uniform(0, math.pi * 2)
-        dist = random.uniform(0, 30)
+        dist = random.uniform(0, 25)
         px = cx + math.cos(angle) * dist
-        py = cy + random.uniform(-10, 5)
+        py = cy + random.uniform(-8, 4)
         engine.particle_system.append(Particle(
             px, py, (200, 30, 40), speed=3, size_range=(2, 5),
             directional=True, angle_bias=math.radians(-90)))  # float upward
@@ -162,10 +162,10 @@ def spawn_heal_particles(engine):
     """Spawn ascending golden-green sparkles when Repair heals."""
     from game.particles.particle import Particle
     cx, cy = engine.paddle.rect.centerx, engine.paddle.rect.y - 10
-    for i in range(10):
+    for i in range(8):
         angle = math.radians(-90 + random.uniform(-30, 30))
-        ox = cx + random.uniform(-20, 20)
-        oy = cy + random.uniform(-5, 5)
+        ox = cx + random.uniform(-15, 15)
+        oy = cy + random.uniform(-4, 4)
         engine.particle_system.append(Particle(
             ox, oy, (120, 255, 140), speed=3, size_range=(2, 5),
             directional=True, angle_bias=angle))
@@ -326,8 +326,8 @@ def apply_life_steal(engine, selected_skills):
         engine.paddle.lives += 1
         from game.particles.particle import Particle
         cx, cy = engine.paddle.rect.centerx, engine.paddle.rect.y
-        for i in range(12):
-            angle = math.radians(i * 30)
+        for i in range(8):
+            angle = math.radians(i * 45)
             engine.particle_system.append(Particle(
                 cx, cy, (255, 80, 60), speed=4, size_range=(2, 5),
                 directional=True, angle_bias=angle))

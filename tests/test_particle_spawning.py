@@ -23,7 +23,7 @@ class TestParticleSpawning(unittest.TestCase):
             game.handle_ball_brick_hit(brick, game.balls[0])
 
             self.assertFalse(brick.active)
-            self.assertEqual(len(game.particle_system), 9)
+            self.assertEqual(len(game.particle_system), 6)
             self.assertGreater(game.hit_pause_timer, 0)
 
     def test_particle_system_filters_dead_particles(self):

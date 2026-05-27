@@ -717,12 +717,12 @@ class GameEngine:
         self.apply_chain_spark(brick)
         splash_bricks = effects_module.apply_explosive(self, brick, self.selected_skills)
         dmg_count = effects_module.skill_count(self.selected_skills, SkillType.DAMAGE)
-        particle_count = 9 + dmg_count * 3 if destroyed else 5 + dmg_count
+        particle_count = 6 + dmg_count * 2 if destroyed else 3 + dmg_count
         self.spawn_particles(brick, particle_count, speed=4 if destroyed else 3, size_range=(2, 4) if destroyed else (1, 3))
         for splash_brick in splash_bricks:
             self._dirty_bricks.append(splash_brick)
             self.award_brick_score(splash_brick, not splash_brick.active)
-            self.spawn_particles(splash_brick, 4, speed=4, size_range=(1, 3))
+            self.spawn_particles(splash_brick, 3, speed=4, size_range=(1, 3))
 
     def handle_bullet_hits(self):
         for bullet in self.bullets:
@@ -755,7 +755,7 @@ class GameEngine:
                     self.advance_piercing_bullet(bullet)
                 else:
                     bullet.active = False
-                self.spawn_particles(brick, 7 if destroyed else 3, speed=4 if destroyed else 3, size_range=(2, 4) if destroyed else (1, 3))
+                self.spawn_particles(brick, 5 if destroyed else 3, speed=4 if destroyed else 3, size_range=(2, 4) if destroyed else (1, 3))
                 break  # one brick hit per frame (piercing works cross-frame)
             if not bullet.active:
                 continue
@@ -820,7 +820,7 @@ class GameEngine:
             self.audio.play("shield", 0.85)
             self.trigger_impact_feedback(0.08, 4)
             # Shield absorb particles
-            for _ in range(8):
+            for _ in range(6):
                 self.particle_system.append(Particle(
                     self.paddle.rect.centerx, self.paddle.rect.y,
                     (100, 200, 255), speed=4, size_range=(2, 5)))
@@ -902,7 +902,7 @@ class GameEngine:
                 cx, cy, brick.color, speed=speed, size_range=size_range,
                 directional=True, angle_bias=angle))
 
-    def spawn_enemy_particles(self, enemy, count=8):
+    def spawn_enemy_particles(self, enemy, count=6):
         """Spawn directional death burst from an enemy."""
         cx, cy = enemy.rect.centerx, enemy.rect.centery
         for i in range(count):
@@ -919,7 +919,7 @@ class GameEngine:
 
     # ── Visual effect helpers ─────────────────────────────────────
 
-    def _spawn_shockwave_ring(self, cx, cy, color, count=8):
+    def _spawn_shockwave_ring(self, cx, cy, color, count=6):
         """Expanding ring of particles (PULSE brick effect)."""
         for i in range(count):
             angle = math.radians(i * (360 / count))
@@ -927,7 +927,7 @@ class GameEngine:
                 cx, cy, color, speed=4, size_range=(2, 4),
                 directional=True, angle_bias=angle))
 
-    def _spawn_explosion_burst(self, cx, cy, color, count=14):
+    def _spawn_explosion_burst(self, cx, cy, color, count=10):
         """Dense directional explosion (BOMB brick)."""
         for i in range(count):
             angle = math.radians(i * (360 / count))
@@ -935,7 +935,7 @@ class GameEngine:
                 cx, cy, (255, 160, 40), speed=6, size_range=(2, 6),
                 directional=True, angle_bias=angle))
         # Hot white core sparks
-        for _ in range(4):
+        for _ in range(3):
             angle = random.uniform(0, math.pi * 2)
             self.particle_system.append(Particle(
                 cx, cy, (255, 240, 200), speed=3, size_range=(1, 3),
@@ -951,7 +951,7 @@ class GameEngine:
                 ox, oy, color, speed=5, size_range=(2, 4),
                 directional=True, angle_bias=angle))
 
-    def _spawn_rainbow_burst(self, cx, cy, count=12):
+    def _spawn_rainbow_burst(self, cx, cy, count=10):
         """Multi-colored particle burst (PRISM brick)."""
         rainbow = [(255, 100, 100), (255, 200, 50), (100, 255, 100),
                    (50, 180, 255), (180, 100, 255), (255, 150, 255)]
@@ -964,13 +964,13 @@ class GameEngine:
 
     def _spawn_portal_effect(self, cx, cy, color):
         """Expanding ring at enemy spawn point (SENTRY brick)."""
-        for i in range(10):
-            angle = math.radians(i * 36)
+        for i in range(8):
+            angle = math.radians(i * 45)
             self.particle_system.append(Particle(
                 cx, cy, color, speed=2, size_range=(2, 4),
                 directional=True, angle_bias=angle))
         # Dark smoke puffs
-        for _ in range(4):
+        for _ in range(3):
             self.particle_system.append(Particle(
                 cx + random.uniform(-8, 8), cy + random.uniform(-4, 4),
                 (30, 20, 30), speed=1, size_range=(2, 4)))
@@ -1040,14 +1040,14 @@ class GameEngine:
             # Lightning arc particles along a zigzag path
             self._spawn_lightning_arc(prev.rect.centerx, prev.rect.centery,
                                       target.rect.centerx, target.rect.centery,
-                                      (80, 180, 255), count=12)
+                                      (80, 180, 255), count=8)
             # Impact sparks on target
             self.spawn_particles(target, 6, speed=5, size_range=(1, 4))
             chained.append(target)
             prev = target
         return chained
 
-    def _spawn_lightning_arc(self, x1, y1, x2, y2, color, count=12):
+    def _spawn_lightning_arc(self, x1, y1, x2, y2, color, count=8):
         """Spawn particles along a jagged lightning path between two points."""
         dx, dy = x2 - x1, y2 - y1
         dist = max(1, math.hypot(dx, dy))
@@ -1983,7 +1983,7 @@ class GameEngine:
         target.hit_color = RETRO_PALETTE["paddle"]
         self.audio.play("charge", 0.45)
         # Healing particles flow from source to target
-        for i in range(5):
+        for i in range(4):
             t = i / 4.0
             px = source.rect.centerx + (target.rect.centerx - source.rect.centerx) * t
             py = source.rect.centery + (target.rect.centery - source.rect.centery) * t
