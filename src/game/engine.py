@@ -38,6 +38,7 @@ from game.roguelite.bullet import LaserBullet
 from game.particles.particle import Particle
 
 from game.viewport import Viewport
+from game.android_touch import AndroidInput
 
 SAVE_VERSION = 1
 STATS_VERSION = 1
@@ -75,6 +76,7 @@ class GameEngine:
         self.clock = pygame.time.Clock()
         self.running = True
         self.playfield_top = 154
+        self.android_input = AndroidInput()
         self.run_seed = random.randint(0, 2**31 - 1)
         
         # Game State
@@ -188,9 +190,16 @@ class GameEngine:
             self.draw()
 
     def handle_events(self):
-        for event in pygame.event.get():
+        raw_events = pygame.event.get()
+        self.android_input.process(raw_events, self.viewport)
+
+        for event in raw_events:
             if event.type == pygame.QUIT:
                 self.running = False
+                continue
+            # Android finger events handled by AndroidInput
+            if event.type in (pygame.FINGERDOWN, pygame.FINGERUP, pygame.FINGERMOTION):
+                continue
             if event.type == pygame.KEYDOWN:
                 if self.state in ("CONTROLS", "SETTINGS", "SKILL_GUIDE"):
                     self._handle_keydown_modal(event)
@@ -235,6 +244,21 @@ class GameEngine:
                 handler = self._MOUSE_HANDLERS.get(self.state)
                 if handler:
                     handler(event)
+
+        # Android touch: menu clicks (tap not on a virtual button)
+        click_pos = self.android_input.click_pos()
+        if click_pos:
+            handler = self._MOUSE_HANDLERS.get(self.state)
+            if handler:
+                fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": click_pos, "button": 1})
+                handler(fake_event)
+
+        # Android touch: pause action
+        if self.android_input.action() == "pause" and self.state in ("PLAYING", "PAUSED"):
+            if self.state == "PLAYING":
+                self.state = "PAUSED"
+            else:
+                self.state = "PLAYING"
 
         # Key-polling for held-down confirm in certain states
         poll_handler = self._POLL_HANDLERS.get(self.state)
@@ -516,7 +540,8 @@ class GameEngine:
             return
 
         keys = pygame.key.get_pressed()
-        self.paddle.move(self.width, keys, self.keybindings)
+        touch_x = self.android_input.paddle_target_x()
+        self.paddle.move(self.width, keys, self.keybindings, touch_x=touch_x)
         self.update_helper_paddles()
         self.update_active_skills(keys, dt)
         
@@ -1025,12 +1050,15 @@ class GameEngine:
     def update_active_skills(self, keys, dt):
         self.cannon_cooldown = max(0, self.cannon_cooldown - dt)
         self.seeker_cooldown = max(0, self.seeker_cooldown - dt)
-        self.gravity_well_active = self.keybindings.action_down(keys, "down") and effects_module.skill_count(self.selected_skills, SkillType.GRAVITY_WELL) > 0
+        self.gravity_well_active = (
+            self.keybindings.action_down(keys, "down")
+            or self.android_input.action() == "down"
+        ) and effects_module.skill_count(self.selected_skills, SkillType.GRAVITY_WELL) > 0
         if self.gravity_well_active and not self.gravity_well_was_active:
             self.audio.play("well", 0.65)
         self.gravity_well_was_active = self.gravity_well_active
 
-        if self.keybindings.action_down(keys, "up"):
+        if self.keybindings.action_down(keys, "up") or self.android_input.action() == "up":
             self.fire_cannon()
         self.fire_seeker()
 
@@ -1555,6 +1583,7 @@ class GameEngine:
         self.draw_bottom_warning()
         screens.draw_hud(self.screen, self)
         screens.draw_boss_hud(self.screen, self)
+        self.android_input.draw(self.screen)
 
     def draw_shield_aura(self, surface):
         shield_level = effects_module.skill_count(self.selected_skills, SkillType.SHIELD)
