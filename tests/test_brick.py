@@ -90,7 +90,7 @@ class TestBrickGrid(unittest.TestCase):
         level_six_max = max(brick.max_hp for brick in level_six.bricks)
 
         self.assertGreaterEqual(level_six_max, level_three_max)
-        self.assertLessEqual(level_six_max - level_three_max, 200)
+        self.assertLessEqual(level_six_max - level_three_max, 300)
 
     def test_special_interval_has_floor(self):
         """Test that special brick density remains bounded at high levels."""
