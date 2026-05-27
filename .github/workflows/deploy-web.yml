@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [feat/android-port]
+    branches: [main, feat/android-port]
   workflow_dispatch:
 
 permissions:
