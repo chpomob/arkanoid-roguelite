@@ -8,7 +8,7 @@ class LaserBullet:
         self.width = 4
         self.height = 10
         self.rect = pygame.Rect(self.x - 2, self.y - 5, self.width, self.height)
-        self.speed = 10
+        self.speed = 15
         self.dx = dx
         self.dy = -self.speed if dy is None else dy
         self.damage = damage

@@ -5,8 +5,8 @@ from game.assets import draw_ball_sprite
 
 class Ball:
     def __init__(self, screen_width, screen_height, paddle, y_offset=0):
-        self._speed_base = 600  # ×100 units — skills modify this
-        self._speed_px = 6.0    # self._speed_base / 100, actual pixels/frame
+        self._speed_base = 900  # ×100 units — skills modify this
+        self._speed_px = 9.0    # self._speed_base / 100, actual pixels/frame
         self.size = 12
         self.x = screen_width / 2
         self.y = screen_height / 2 + y_offset

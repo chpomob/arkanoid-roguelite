@@ -178,7 +178,7 @@ class TestPaddleBallCollision(unittest.TestCase):
         ball.y = paddle.rect.y - (ball.size // 2)
         ball.rect.center = (int(ball.x), int(ball.y))
         ball.dx = 3
-        ball.dy = 7
+        ball.dy = 12
 
         before = math.hypot(ball.dx, ball.dy)
         ball.update(width, height, [])

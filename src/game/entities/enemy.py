@@ -60,7 +60,7 @@ class BaseEnemy(ABC):
 class Enemy(BaseEnemy):
     is_boss: bool = False
 
-    def __init__(self, x, y, bounds, speed=1.45, cooldown=1.8, hp=1):
+    def __init__(self, x, y, bounds, speed=2.2, cooldown=1.8, hp=100):
         self.x = x
         self.y = y
         self.bounds = bounds
@@ -115,7 +115,7 @@ class BossEnemy(BaseEnemy):
         self.base_y = playfield_top + 68
         self.y = self.base_y
         self.bounds = (72, screen_width - 72)
-        self.speed = definition.speed + max(0, level - definition.tier * 5) * 0.025
+        self.speed = definition.speed + max(0, level - definition.tier * 5) * 0.04
         self.direction = 1
         self.cooldown = max(0.62, definition.cooldown - (definition.tier - 1) * 0.05)
         self.fire_timer = self.cooldown * 0.65
@@ -156,7 +156,7 @@ class BossEnemy(BaseEnemy):
     def fire(self):
         self.fire_timer = self.cooldown
         origin = (self.rect.centerx, self.rect.bottom + 6)
-        shot_speed = 4.2 + self.tier * 0.45
+        shot_speed = 6.3 + self.tier * 0.7
         color = self.accent
         pattern = self.definition.pattern
         if pattern == "spread":

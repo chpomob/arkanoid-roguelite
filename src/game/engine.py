@@ -912,7 +912,7 @@ class GameEngine:
                 directional=True, angle_bias=angle))
 
     def spawn_enemy(self, x, y, speed=None, cooldown=None):
-        enemy_speed = speed if speed is not None else min(2.2, 1.25 + self.level * 0.045)
+        enemy_speed = speed if speed is not None else min(3.3, 1.85 + self.level * 0.07)
         enemy_cooldown = cooldown if cooldown is not None else max(0.95, 2.2 - self.level * 0.055)
         bounds = (34, self.width - 34)
         self.enemies.append(Enemy(x, y, bounds, speed=enemy_speed, cooldown=enemy_cooldown))
@@ -1168,7 +1168,7 @@ class GameEngine:
         dx = target[0] - start[0]
         dy = target[1] - start[1]
         length = max(1.0, math.hypot(dx, dy))
-        speed = min(11.0, 7.2 + seeker_count * 0.55)
+        speed = min(16.5, 10.8 + seeker_count * 0.85)
         damage = 100 + (100 if seeker_count >= 3 else 0)
         self.bullets.append(LaserBullet(
             start,
@@ -1793,16 +1793,16 @@ class GameEngine:
 
 
     def difficulty_speed_bonus(self):
-        bonus = min(2.6, max(0, (self.level - 1) * 0.10))
+        bonus = min(3.9, max(0, (self.level - 1) * 0.15))
         if self.level > 1 and (self.level - 1) % 5 == 0:
-            bonus = max(0, bonus - 0.22)
+            bonus = max(0, bonus - 0.33)
         return bonus
 
     def apply_level_difficulty_to_balls(self):
         stabilizer_count = effects_module.skill_count(self.selected_skills, SkillType.SPEED_UP)
-        speed_bonus = max(0, self.difficulty_speed_bonus() - stabilizer_count * 0.28)
+        speed_bonus = max(0, self.difficulty_speed_bonus() - stabilizer_count * 0.42)
         for ball in self.balls:
-            target_speed = min(10.6, ball.speed + speed_bonus)
+            target_speed = min(15.9, ball.speed + speed_bonus)
             current_speed = max(0.01, math.hypot(ball.dx, ball.dy))
             scale = target_speed / current_speed
             ball.dx *= scale
@@ -1828,7 +1828,7 @@ class GameEngine:
                 for offset in [-20, 20]:
                     self.bullets.append(LaserBullet(
                         (self.paddle.rect.centerx + offset, self.paddle.rect.y - 10),
-                        dy=-8, color=color, damage=100))
+                        dy=-12, color=color, damage=100))
 
         if echo_count:
             width = min(92, 46 + echo_count * 10)
@@ -1881,7 +1881,7 @@ class GameEngine:
             b1._trail_color = (100, 255, 200); b2._trail_color = (100, 255, 200)
             self.bullets.extend([b1, b2])
             if volley_count >= 2:
-                self.bullets.append(LaserBullet((ball.rect.centerx, ball.rect.centery - 6), dy=-8.5, color=color))
+                self.bullets.append(LaserBullet((ball.rect.centerx, ball.rect.centery - 6), dy=-13, color=color))
             self.audio.play("projectile", 0.75)
         if ricochet_count:
             direction = 1 if ball.dx >= 0 else -1
@@ -1891,7 +1891,7 @@ class GameEngine:
             self.bullets.append(LaserBullet(
                 (ball.rect.centerx, ball.rect.centery),
                 dx=direction * spread,
-                dy=-7.0,
+                dy=-10.5,
                 damage=damage,
                 color=color,
                 bounces=ricochet_count,
@@ -1908,7 +1908,7 @@ class GameEngine:
                 self.bullets.append(LaserBullet(
                     (ball.rect.centerx, ball.rect.centery),
                     dx=dx,
-                    dy=-8.4,
+                    dy=-12.5,
                     damage=100,
                     color=color,
                     bounds_width=self.width,

@@ -11,7 +11,7 @@ class Paddle:
         self.height = height
         self.x = (screen_width - self.width) / 2
         self.y = screen_height - 40
-        self.speed = 7
+        self.speed = 11
         self.color = color
         self.rect = pygame.Rect(int(self.x), int(self.y), self.width, self.height)
         self.lives = 3
@@ -25,11 +25,16 @@ class Paddle:
 
     def move(self, screen_width, keys, keybindings=None, touch_x=None):
         if touch_x is not None:
-            # Direct touch: center paddle on finger X
+            # Touch: glide toward target at paddle.speed (same as keyboard)
             target = int(touch_x - self.width // 2)
             target = max(0, min(screen_width - self.width, target))
-            self.rect.x = target
-            self.last_move_direction = 1 if target > self.rect.x else (-1 if target < self.rect.x else 0)
+            diff = target - self.rect.x
+            if abs(diff) > self.speed:
+                self.rect.x += self.speed if diff > 0 else -self.speed
+                self.last_move_direction = 1 if diff > 0 else -1
+            else:
+                self.rect.x = target
+                self.last_move_direction = 0
         else:
             self.last_move_direction = 0
             left_pressed = keybindings.action_down(keys, "left") if keybindings else keys[pygame.K_LEFT]

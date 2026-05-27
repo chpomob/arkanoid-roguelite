@@ -24,7 +24,7 @@ class TestPaddle(unittest.TestCase):
         self.assertEqual(self.paddle.base_width, 100)
         self.assertEqual(self.paddle.width, 100)
         self.assertEqual(self.paddle.height, 15)
-        self.assertEqual(self.paddle.speed, 7)
+        self.assertEqual(self.paddle.speed, 11)
         self.assertEqual(self.paddle.color, (0, 228, 54))
         # Verify position based on width
         expected_x = (self.width - 100) / 2

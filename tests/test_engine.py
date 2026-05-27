@@ -280,7 +280,7 @@ class TestEngine(unittest.TestCase):
         game.level = 50
 
         self.assertGreater(mid_bonus, 0)
-        self.assertLessEqual(game.difficulty_speed_bonus(), 2.6)
+        self.assertLessEqual(game.difficulty_speed_bonus(), 3.9)
 
     def test_level_difficulty_scales_ball_velocity(self):
         """Test that level difficulty updates both speed metadata and velocity."""

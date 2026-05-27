@@ -68,7 +68,7 @@ class TestEnemies(unittest.TestCase):
             game.spawn_enemy(120, 120, speed=0, cooldown=10)
             bullet = mock.MagicMock()
             bullet.active = True
-            bullet.damage = 1
+            bullet.damage = 100
             bullet.rect = game.enemies[0].rect.copy()
             game.bullets = [bullet]
 
