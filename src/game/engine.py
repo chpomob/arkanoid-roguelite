@@ -261,6 +261,8 @@ class GameEngine:
                 handler = self._MOUSE_HANDLERS.get(self.state)
                 if handler:
                     handler(event)
+                    # Consume click so android dispatch doesn't fire twice
+                    self.android_input._click_pos = None
 
         # Android touch: menu clicks (tap not on a virtual button)
         # Use saved state — the for-loop may have changed self.state
