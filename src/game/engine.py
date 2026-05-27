@@ -257,9 +257,12 @@ class GameEngine:
                     handler(event)
 
         # Android touch: menu clicks (tap not on a virtual button)
+        # Must read BEFORE dispatching TITLE handler — the handler may
+        # change state, and we must NOT re-dispatch the same click.
         click_pos = self.android_input.click_pos()
+        click_state = self.state
         if click_pos:
-            handler = self._MOUSE_HANDLERS.get(self.state)
+            handler = self._MOUSE_HANDLERS.get(click_state)
             if handler:
                 fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": click_pos, "button": 1})
                 handler(fake_event)
@@ -372,13 +375,10 @@ class GameEngine:
     # --- Poll handlers (held-down keys) ---
 
     def _poll_skill_selection(self):
-        self._skill_select_frame += 1
         keys = pygame.key.get_pressed()
         if self.keybindings.action_down(keys, "confirm"):
             selected_card = next((card for card in self.skill_cards if card.selected), None)
-            # Guard: don't auto-select on the very first frame in this state.
-            # On WASM/pygbag, phantom key events can trigger immediate auto-pick.
-            if selected_card is None and self.skill_cards and self._skill_select_frame > 10:
+            if selected_card is None and self.skill_cards:
                 selected_card = self.skill_cards[0]
             if selected_card is not None:
                 self.complete_skill_selection(selected_card.skill)
@@ -1224,7 +1224,6 @@ class GameEngine:
         self.state = "PLAYING"
 
     def start_game(self, initial_skill_draft=True):
-        self._skill_select_frame = 0
         self.record_run_start()
         self.run_seed = random.randint(0, 2**31 - 1)
         self.level = 1
