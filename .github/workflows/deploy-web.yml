@@ -16,7 +16,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install pygbag
-        run: pip install pygbag
+        run: pip install --break-system-packages pygbag
 
       - name: Build WebAssembly
         run: pygbag --build src/
