@@ -2,6 +2,8 @@
 
 <p align="center">
   <img src="demo.gif" alt="Arkanoid Roguelite gameplay" width="512">
+  <br>
+  <img src="demo_boss.gif" alt="Boss fight with skills" width="512">
 </p>
 
 <p align="center">
