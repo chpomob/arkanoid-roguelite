@@ -39,12 +39,12 @@ class TestLaserBullet(unittest.TestCase):
 
     def test_ricochet_bullet_bounces_off_side_wall(self):
         """Test that bouncing projectiles reverse horizontal travel at walls."""
-        bullet = bullet_module.LaserBullet((198, 100),.ndx=5,.ndy=-1, bounces=1, bounds_width=200)
+        bullet = bullet_module.LaserBullet((198, 100), dx=5, dy=-1, bounces=1, bounds_width=200)
 
         bullet.update(1 / 60)
 
         self.assertTrue(bullet.active)
-        self.assertLess(bullet.ndx, 0)
+        self.assertLess(bullet.dx, 0)
         self.assertEqual(bullet.bounces, 0)
 
 

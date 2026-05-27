@@ -25,8 +25,8 @@ class TestBallSpeedModification(unittest.TestCase):
         effects_module.apply_skills_to_ball(ball, skills)
         
         self.assertLess(ball.speed, initial_speed)
-        self.assertGreaterEqual(ball.speed, 3.0)
-
+        self.assertGreaterEqual(ball.speed, ball.vp.nspeed(3.0))
+    
     def test_control_skill_increases_aiming_range(self):
         """Test that CONTROL skill improves paddle aiming."""
         paddle = Paddle(Viewport(1024, 768))
@@ -52,7 +52,7 @@ class TestBallSpeedModification(unittest.TestCase):
         effects_module.apply_skills_to_ball(ball, skills)
         
         self.assertGreater(ball.nsize, initial_size)
-        self.assertLessEqual(ball.nsize, 24)
+        self.assertLessEqual(ball.nsize, ball.vp.legacy_s(24))
 
 
 if __name__ == '__main__':

@@ -46,8 +46,9 @@ class Ball:
         # Bounce physics (angles preserved — no normalization needed)
         self.max_bounce_angle = math.radians(68)
         self.center_nudge = 0.13
-        self.min_horizontal_speed = 0.55
-        self.wall_exit_horizontal_speed = 0.9
+        # Speed thresholds — converted from old pixel/frame to normalized values
+        self.min_horizontal_speed = vp.nspeed(0.55, fps=1.0)  # old: 0.55 px/frame
+        self.wall_exit_horizontal_speed = vp.nspeed(0.9, fps=1.0)  # old: 0.9 px/frame
 
     def _compute_rect(self) -> pygame.Rect:
         """Build pygame.Rect from normalized coords via viewport."""
@@ -136,7 +137,23 @@ class Ball:
 
         self.ensure_horizontal_motion()
 
-    def update(self, brick_layers, apply_damage=True, playfield_top_n=0.0):
+    def update(self, *args, apply_damage=True, playfield_top_n=0.0, **kwargs):
+        """
+        Update ball physics and handle brick/paddle collisions.
+        New: update(brick_layers, apply_damage=True, playfield_top_n=0.0)
+        Legacy: update(screen_width, screen_height, brick_layers, apply_damage=True, playfield_top=0)
+        """
+        if len(args) >= 2 and isinstance(args[0], (int, float)):
+            # Legacy: update(screen_width, screen_height, brick_layers, ...)
+            brick_layers = args[2] if len(args) > 2 else []
+            playfield_top_px = kwargs.get('playfield_top', 0) if 'playfield_top' in kwargs else (args[3] if len(args) > 3 else 0)
+            playfield_top_n = playfield_top_px / self.vp._ref_h if playfield_top_px > 0 else 0.0
+        elif len(args) >= 1 and hasattr(args[0], '__iter__'):
+            brick_layers = args[0]
+        elif 'brick_layers' in kwargs:
+            brick_layers = kwargs['brick_layers']
+        else:
+            brick_layers = []
         self.hit_paddle = False
         self.move(playfield_top_n)
 

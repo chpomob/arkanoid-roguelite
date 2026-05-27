@@ -257,7 +257,8 @@ class TestUtilitySkills(unittest.TestCase):
 
         effects_module.apply_skills_to_paddle(paddle, skills)
 
-        self.assertEqual(paddle.nw, 116)
+        # Wide: +24px, Focus: -8px → net +16px at 800 width = 16/800
+        self.assertAlmostEqual(paddle.nw, paddle.vp.legacy_x(100 + 16), places=3)
 
     def test_cannon_fires_from_up_active_skill(self):
         """Test that Cannon creates an active projectile with a cooldown."""

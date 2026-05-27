@@ -21,7 +21,9 @@ def skill_count(selected_skills: list, skill_type: SkillType) -> int:
 def apply_skills_to_paddle(paddle, selected_skills: list) -> None:
     wide_count = skill_count(selected_skills, SkillType.PADDLE_WIDE)
     focus_count = skill_count(selected_skills, SkillType.FOCUS)
-    paddle.width_bonus = (wide_count * 24) - min(32, focus_count * 8)
+    # Convert old pixel bonuses to normalized via paddle's viewport
+    vp = paddle.vp
+    paddle.width_bonus = vp.legacy_x(wide_count * 24) - vp.legacy_x(min(32, focus_count * 8))
     paddle.update_rect()
 
 
@@ -30,9 +32,9 @@ def handle_skills(engine, selected_skills: list, run_state: RunState, heal_alrea
     multi_ball_count = skill_count(selected_skills, SkillType.MULTI_BALL)
     current_balls = len(engine.balls)
     for i in range(multi_ball_count):
-        new_ball = Ball(engine.width, engine.height, engine.paddle, y_offset=(current_balls + i) * 12)
-        new_ball.dx = new_ball.speed * (-2 * ((run_state.balls_count + i) % 2) + 1)
-        new_ball.dy = -new_ball.speed
+        new_ball = Ball(engine.viewport, engine.paddle, y_offset=engine.viewport.legacy_y((current_balls + i) * 12))
+        new_ball.ndx = new_ball.speed * (-2 * ((run_state.balls_count + i) % 2) + 1)
+        new_ball.ndy = -new_ball.speed
         new_ball.color = (100, 220, 255)  # cyan twin ball
         engine.balls.append(new_ball)
         run_state.balls_count += 1
@@ -90,14 +92,18 @@ def apply_skills_to_ball(ball: Ball, selected_skills: list) -> None:
     control_count = skill_count(selected_skills, SkillType.CONTROL)
     giant_count = skill_count(selected_skills, SkillType.GIANT_BALL)
 
-    base_size = getattr(ball, "base_size", None)
-    if not isinstance(base_size, (int, float)):
-        base_size = getattr(ball, "size", 12)
-    if not isinstance(base_size, (int, float)):
-        base_size = 12
+    base_size = getattr(ball, "base_nsize", getattr(ball, "base_size", None))
+    # Only check numeric values — skip mocks/None
+    if isinstance(base_size, (int, float)):
+        if base_size > 1.0:
+            base_size = ball.vp.legacy_s(base_size)
+    else:
+        base_size = ball.vp.legacy_s(12)
 
-    ball.speed = max(3.0, 5 * (1 - stabilizer_count * 0.08))
-    ball.size = min(24, base_size + giant_count * 3)
+    # Convert old pixel speeds to normalized via ball's viewport
+    old_speed_px = max(3.0, 5 * (1 - stabilizer_count * 0.08))
+    ball.speed = ball.vp.nspeed(old_speed_px)
+    ball.nsize = min(ball.vp.legacy_s(24), base_size + ball.vp.legacy_s(giant_count * 3))
     # Giant balls leave a particle trail
     if giant_count > 0 and hasattr(ball, 'rect'):
         from game.particles.particle import Particle

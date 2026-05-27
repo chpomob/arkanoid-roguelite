@@ -21,7 +21,7 @@ class TestEnemies(unittest.TestCase):
         self.assertEqual(enemy.direction, -1)
         self.assertEqual(enemy.x, 30)
 
-    def test_enemy_fires_when_re.ndy(self):
+    def test_enemy_fires_when_ready(self):
         enemy = Enemy(100, 100, bounds=(30, 200), cooldown=0.01)
         enemy.update(1)
 
@@ -33,7 +33,7 @@ class TestEnemies(unittest.TestCase):
         self.assertGreater(enemy.fire_timer, 0)
 
     def test_enemy_shot_can_move_diagonally(self):
-        shot = EnemyShot((100, 100),.ndx=1.5)
+        shot = EnemyShot((100, 100), dx=1.5)
 
         shot.update(1 / 60)
 

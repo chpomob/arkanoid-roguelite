@@ -8,7 +8,6 @@ import tempfile
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 import pygame # Initialize for rect creation
-from game.viewport import Viewport
 pygame.init()
 import game.engine as engine_module
 
@@ -96,7 +95,7 @@ class TestEngine(unittest.TestCase):
         self.assertEqual(game.state, "PLAYING")
 
     def test_known_special_bricks_do_not_repeat_briefing(self):
-        """Test that alre.ndy introduced brick effects do not pause later levels."""
+        """Test that already introduced brick effects do not pause later levels."""
         try:
             game = engine_module.GameEngine(800, 600)
         except Exception as e:
@@ -261,7 +260,7 @@ class TestEngine(unittest.TestCase):
             self.skipTest(f"Pygame display or init failed: {e}")
 
         game.level = 9
-        game.brick_grid = engine_module.BrickGrid(Viewport(800, 600), level=9, top_n=game.playfield_top_n + 10)
+        game.brick_grid = engine_module.BrickGrid(800, 600, level=9, top=game.playfield_top + 10)
         kinds = game.level_special_kinds()
 
         self.assertEqual(len(kinds), len(set(kinds)))

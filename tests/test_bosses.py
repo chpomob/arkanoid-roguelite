@@ -11,6 +11,7 @@ from game.bosses import boss_by_id, bosses_for_level, is_boss_level
 from game.engine import GameEngine
 from game.entities.brick import BrickGrid
 from game.roguelite.skill import Skill, SkillType
+from game.viewport import Viewport
 
 
 class TestBossLevels(unittest.TestCase):

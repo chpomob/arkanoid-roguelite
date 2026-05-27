@@ -49,6 +49,12 @@ class Particle:
         self.dy *= 0.985
         self.rect.center = (int(self.x), int(self.y))
 
+    # Backward-compat alias (sed-generated)
+    @property
+    def nsize(self): return self.size
+    @nsize.setter
+    def nsize(self, v): self.size = v
+
     def draw(self, screen):
         if self.life <= 0:
             return
