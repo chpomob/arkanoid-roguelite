@@ -1933,6 +1933,5 @@ class GameEngine:
         self.balls.append(new_ball)
 
 
-if __name__ == "__main__":
-    asyncio.run(GameEngine(1024, 768).run())
-    pygame.quit()
+# Standalone desktop entry point (not used by pygbag).
+# python3 -c "import asyncio; from game.engine import GameEngine; asyncio.run(GameEngine(1024,768).run())"
