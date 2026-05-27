@@ -7,27 +7,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
-          python-version: '3.12'
-
-      - name: Install system deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk-headless zip unzip cmake=3.22.1-1ubuntu1.22.04.2
-
-      - name: Install buildozer + cython
-        run: pip install buildozer cython
-
-      - name: Build APK
-        run: yes | buildozer android debug
+          workdir: .
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: arkanoid-roguelite-android
-          path: bin/*.apk
+          path: ${{ steps.buildozer.outputs.filename }}
