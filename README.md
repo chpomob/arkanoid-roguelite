@@ -1,6 +1,10 @@
 # 🧱 Arkanoid Roguelite
 
 <p align="center">
+  <img src="demo.gif" alt="Arkanoid Roguelite gameplay" width="512">
+</p>
+
+<p align="center">
   <em>Break bricks. Choose upgrades. Survive the run.</em>
 </p>
 
