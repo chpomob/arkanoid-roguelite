@@ -758,11 +758,11 @@ class GameEngine:
         self.enemies = [enemy for enemy in self.enemies if enemy.active]
 
     def handle_enemy_shot_hits(self):
-        paddle_rects = [self.paddle.rect] + getattr(self.paddle, "extra_rects", [])
+        # Only the main paddle takes damage — helper paddles are projections
         for shot in self.enemy_shots:
             if not shot.active:
                 continue
-            if any(shot.rect.colliderect(rect) for rect in paddle_rects):
+            if shot.rect.colliderect(self.paddle.rect):
                 shot.active = False
                 self.handle_enemy_hit_player()
         self.enemy_shots = [shot for shot in self.enemy_shots if shot.active]
