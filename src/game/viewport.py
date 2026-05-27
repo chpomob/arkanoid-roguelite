@@ -34,6 +34,13 @@ class Viewport:
         """Logical Y (pixels in 768 space) → screen Y."""
         return int(ly * self.sy)
 
+    def rect_nw_nh(self, lx: float, ly: float, lw: float, lh: float) -> pygame.Rect:
+        """Logical rect where lw,lh are absolute width/height in logical px."""
+        return pygame.Rect(
+            int(lx * self.sx), int(ly * self.sy),
+            int(lw * self.sx), int(lh * self.sy),
+        )
+
     def rect(self, lx: float, ly: float, lw: float, lh: float) -> pygame.Rect:
         """Logical rect → screen Rect. All four in logical pixels."""
         return pygame.Rect(
