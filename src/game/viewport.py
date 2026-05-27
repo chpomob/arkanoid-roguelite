@@ -60,9 +60,13 @@ class Viewport:
 
     # ── Size projection ─────────────────────────────────────────────
 
-    def psize(self, logical_px: float) -> int:
+    def nsize(self, logical_px: float) -> int:
         """Logical pixel size → screen pixel size (uses X scale)."""
         return int(logical_px * self.sx)
+
+    def psize(self, logical_px: float) -> int:
+        """Alias for nsize."""
+        return self.nsize(logical_px)
 
     # ── Speed conversion (legacy helpers for code migration) ────────
 
