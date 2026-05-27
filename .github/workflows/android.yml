@@ -30,8 +30,9 @@ jobs:
       - name: Accept Android licenses
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
-          if [ -f "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
-            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses
+          SDKMANAGER="$SDK/tools/bin/sdkmanager"
+          if [ -f "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses
           fi
 
       - name: Build APK
