@@ -24,7 +24,7 @@ jobs:
         run: pip install --break-system-packages pygbag
 
       - name: Build WebAssembly
-        run: pygbag --build src/
+        run: pygbag --build --can_close 1 src/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

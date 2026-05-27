@@ -71,6 +71,5 @@ async def main():
             pass
         raise
 
-# NOTE: No ``if __name__ == "__main__": asyncio.run(main())`` here.
-# Pygbag auto-detects async def main() and awaits it.
-# On desktop, run with: python -c "import asyncio; from main import main; asyncio.run(main())"
+if __name__ == "__main__":
+    asyncio.run(main())
