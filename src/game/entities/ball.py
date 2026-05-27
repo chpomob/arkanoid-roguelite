@@ -5,7 +5,7 @@ from game.assets import draw_ball_sprite
 
 class Ball:
     def __init__(self, screen_width, screen_height, paddle, y_offset=0):
-        self.speed = 5
+        self.speed = 6
         self.size = 12
         self.x = screen_width / 2
         self.y = screen_height / 2 + y_offset
