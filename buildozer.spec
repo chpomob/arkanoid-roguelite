@@ -7,7 +7,7 @@ package.domain = com.chpomob
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttf,wav,ogg,mp3
 version = 1.0.1
-requirements = python3,pygame-ce==2.5.2,cython>=3.0
+requirements = python3,pygame-ce,cython>=3.0
 
 # Orientation: portrait or landscape
 orientation = landscape
