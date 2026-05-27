@@ -15,7 +15,7 @@ from game.entities.paddle import Paddle
 
 class TestBall(unittest.TestCase):
     def setUp(self):
-        self.vp = Viewport(800, 600)
+        self.vp = Viewport(1024, 768)
         self.paddle = Paddle(self.vp)
         self.ball = Ball(self.vp, self.paddle)
 

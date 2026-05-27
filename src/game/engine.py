@@ -59,7 +59,7 @@ class GameEngine:
         pygame.init()
         self.width = width
         self.height = height
-        self.viewport = Viewport(width, height)
+        self.viewport = Viewport(1024, 768, width, height)
         self.save_path = Path(save_path)
         self.high_scores_path = Path(high_scores_path)
         self.settings_path = Path(settings_path)

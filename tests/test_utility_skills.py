@@ -249,7 +249,7 @@ class TestUtilitySkills(unittest.TestCase):
 
     def test_wide_and_focus_combine_predictably(self):
         """Test that Wide offsets Focus without runaway paddle scaling."""
-        paddle = Paddle(Viewport(800, 600))
+        paddle = Paddle(Viewport(1024, 768))
         skills = [
             Skill(SkillType.PADDLE_WIDE, "Wide"),
             Skill(SkillType.FOCUS, "Focus"),

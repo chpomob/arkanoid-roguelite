@@ -57,7 +57,7 @@ class TestKeyBindings(unittest.TestCase):
         """Test that A and D move the paddle via configurable bindings."""
         with tempfile.TemporaryDirectory() as tmpdir:
             bindings = KeyBindings(os.path.join(tmpdir, "keys.json"))
-            paddle = Paddle(Viewport(800, 600))
+            paddle = Paddle(Viewport(1024, 768))
 
             start_x = paddle.rect.x
             paddle.move({pygame.K_a: True}, bindings)

@@ -52,7 +52,7 @@ class TestBrickGrid(unittest.TestCase):
     def test_grid_generation(self):
         """Test that the brick grid generates correctly."""
         width, height = 1024, 768
-        grid = BrickGrid(Viewport(width, height), cols=10, rows=5)
+        grid = BrickGrid(Viewport(), cols=10, rows=5)
         
         # Check that grid stores its configuration
         self.assertEqual(grid.cols, 10)
