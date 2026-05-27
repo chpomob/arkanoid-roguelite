@@ -99,10 +99,11 @@ def draw_brick_sprite(surface, rect, color, marker=None, hp=1, max_hp=1):
     if marker:
         draw_special_brick_frame(surface, rect, color, marker)
 
-    # Normalize ×100 HP values for pip display
-    if max_hp > 100:
-        display_max = max_hp // 100
-        display_hp = (hp + 99) // 100  # ceiling so partial HP still shows a pip
+    # Normalize ×N scaled HP values for pip display
+    # Raw values are 1-15 max. Anything above 15 is scaled.
+    if max_hp > 15:
+        display_max = max(1, max_hp // 100)
+        display_hp = max(0, (hp + 50) // 100)
     else:
         display_max = max_hp
         display_hp = hp
