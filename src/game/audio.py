@@ -1,8 +1,13 @@
 import array
 import math
 import random
+import sys
 
 import pygame
+
+
+def _is_wasm():
+    return sys.platform == "emscripten"
 
 
 class SoundManager:
@@ -13,6 +18,11 @@ class SoundManager:
         self.rng = random.Random()
         self.sounds = {}
         if not enabled:
+            return
+
+        # WASM: skip expensive PCM synthesis; pygame-ce audio works but
+        # synthesizing 54 sounds in pure-Python loops blocks the browser.
+        if _is_wasm():
             return
 
         try:
