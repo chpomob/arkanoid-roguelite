@@ -1,3 +1,5 @@
+import asyncio
+import time
 import pygame
 import json
 import math
@@ -79,6 +81,7 @@ class GameEngine:
         self.display = pygame.display.set_mode((width, height), android_flags)
         pygame.display.set_caption("Arkanoid Roguelite - Pixel Edition")
         self.clock = pygame.time.Clock()
+        self._last_tick = time.time()  # for pygbag manual dt timing
         self.running = True
         self.playfield_top = 154
         self.android_input = AndroidInput()
@@ -186,13 +189,16 @@ class GameEngine:
             "GAMEOVER": lambda: screens.draw_game_over(self.screen, self),
         }
 
-    def run(self):
+    async def run(self):
         while self.running:
-            dt = self.clock.tick(60) / 1000.0
+            now = time.time()
+            dt = min(0.05, now - self._last_tick)  # cap at 50ms to prevent spiral
+            self._last_tick = now
             self.handle_events()
             if self.state == "PLAYING":
                 self.update(dt)
             self.draw()
+            await asyncio.sleep(0)  # Yield control for pygbag/WASM
 
     def handle_events(self):
         raw_events = pygame.event.get()
@@ -1928,6 +1934,5 @@ class GameEngine:
 
 
 if __name__ == "__main__":
-    game = GameEngine(1024, 768)
-    game.run()
+    asyncio.run(GameEngine(1024, 768).run())
     pygame.quit()
