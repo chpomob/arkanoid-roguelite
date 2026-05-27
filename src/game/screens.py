@@ -345,7 +345,7 @@ def draw_boss_hud(screen, engine):
     draw_bar(screen, rect.inflate(-4, -6), boss.hp, boss.max_hp, boss.accent)
     pygame.draw.rect(screen, boss.accent, rect, 1, border_radius=4)
     draw_text(screen, boss.name.upper(), RETRO_PALETTE["text_white"], rect.x + 10, rect.y - 18, 13, True, shadow=False)
-    draw_text(screen, f"{boss.hp}/{boss.max_hp}", RETRO_PALETTE["text_muted"], rect.right - 58, rect.y - 17, 12, True, shadow=False)
+    draw_text(screen, f"{(boss.hp + 50) // 100}/{(boss.max_hp + 50) // 100}", RETRO_PALETTE["text_muted"], rect.right - 58, rect.y - 17, 12, True, shadow=False)
 
 
 

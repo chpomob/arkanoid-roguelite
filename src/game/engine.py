@@ -730,9 +730,9 @@ class GameEngine:
                 continue
             pierce_count = effects_module.skill_count(self.selected_skills, SkillType.PIERCING_SHOTS)
             for brick in self.brick_grid.query_rect(bullet.rect):
-                # Projectiles do 0.5 damage to bricks (ball is the main damage vector).
+                # Projectiles do 0.25 damage to bricks (ball is the main damage vector).
                 # Accumulate fractional damage; apply 1 real HP when 1.0 is reached.
-                raw_dmg = getattr(bullet, "damage", 1) * 0.5
+                raw_dmg = getattr(bullet, "damage", 1) * 0.25
                 brick_id = id(brick)
                 acc = self._projectile_brick_damage.get(brick_id, 0.0) + raw_dmg
                 applied = int(acc)  # floor: how many whole HP to remove
