@@ -372,10 +372,13 @@ class GameEngine:
     # --- Poll handlers (held-down keys) ---
 
     def _poll_skill_selection(self):
+        self._skill_select_frame += 1
         keys = pygame.key.get_pressed()
         if self.keybindings.action_down(keys, "confirm"):
             selected_card = next((card for card in self.skill_cards if card.selected), None)
-            if selected_card is None and self.skill_cards:
+            # Guard: don't auto-select on the very first frame in this state.
+            # On WASM/pygbag, phantom key events can trigger immediate auto-pick.
+            if selected_card is None and self.skill_cards and self._skill_select_frame > 1:
                 selected_card = self.skill_cards[0]
             if selected_card is not None:
                 self.complete_skill_selection(selected_card.skill)
@@ -1221,6 +1224,7 @@ class GameEngine:
         self.state = "PLAYING"
 
     def start_game(self, initial_skill_draft=True):
+        self._skill_select_frame = 0
         self.record_run_start()
         self.run_seed = random.randint(0, 2**31 - 1)
         self.level = 1
