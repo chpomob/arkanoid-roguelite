@@ -204,6 +204,12 @@ class GameEngine:
         raw_events = pygame.event.get()
         self.android_input.process(raw_events, self.viewport)
 
+        # Snapshot state before event loop — mouse/key handlers may
+        # change state (e.g. TITLE→SKILL_SELECTION). The android
+        # touch dispatch below must use the ORIGINAL state to avoid
+        # re-dispatching the same click into the new state.
+        _click_state = self.state
+
         for event in raw_events:
             if event.type == pygame.QUIT:
                 self.running = False
@@ -257,12 +263,12 @@ class GameEngine:
                     handler(event)
 
         # Android touch: menu clicks (tap not on a virtual button)
-        # Must read BEFORE dispatching TITLE handler — the handler may
-        # change state, and we must NOT re-dispatch the same click.
+        # Use saved state — the for-loop may have changed self.state
+        # (e.g. TITLE→SKILL_SELECTION). We must NOT re-dispatch the
+        # same click into the new state.
         click_pos = self.android_input.click_pos()
-        click_state = self.state
         if click_pos:
-            handler = self._MOUSE_HANDLERS.get(click_state)
+            handler = self._MOUSE_HANDLERS.get(_click_state)
             if handler:
                 fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": click_pos, "button": 1})
                 handler(fake_event)
