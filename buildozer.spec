@@ -21,8 +21,9 @@ android.permissions = VIBRATE
 # Min / target SDK
 android.minapi = 21
 android.api = 34
-android.ndk = 25c
+android.ndk = 27
 android.sdk = 34
+android.arch = arm64-v8a
 
 # App icon placeholder (48x48 PNG)
 # icon = icon.png
