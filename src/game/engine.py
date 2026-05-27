@@ -1176,11 +1176,17 @@ class GameEngine:
             self.skill_cards.append(SkillCard(new_skill, start_x + i * (card_width + gap), y, card_width, card_height))
 
     def complete_skill_selection(self, skill):
-        # Deduplicate: double-dispatch on pygbag can fire this twice.
-        if any(s.type == skill.type for s in self.selected_skills):
+        # Guard against double-dispatch: exact same Skill object re-fired by pygbag.
+        if skill in self.selected_skills:
             return
+        # Upgrade existing skill of same type, or add new one.
+        existing = next((s for s in self.selected_skills if s.type == skill.type), None)
+        if existing:
+            existing.level = skill.level
+            existing.description = skill.description
+        else:
+            self.selected_skills.append(skill)
         self.global_skill_levels[skill.type] = skill.level
-        self.selected_skills.append(skill)
         if skill.type == SkillType.SHIELD:
             self.shield_charges += 1
         if skill.type == SkillType.SPLIT_CHARGE:

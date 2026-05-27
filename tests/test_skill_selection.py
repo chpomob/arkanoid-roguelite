@@ -67,6 +67,46 @@ class TestGlobalSkillLevels(unittest.TestCase):
 
         self.assertEqual(game.global_skill_levels[SkillType.DAMAGE], 2)
 
+    def test_upgrade_existing_skill_preserves_single_entry(self):
+        """Selecting an already-owned skill upgrades it instead of duplicating."""
+        with mock.patch('pygame.display.set_mode'):
+            game = GameEngine(800, 600)
+            game.start_game(initial_skill_draft=False)
+
+            # First pick: DAMAGE L1
+            skill1 = Skill(SkillType.DAMAGE, "Piercing Shot (Level 1)")
+            skill1.level = 1
+            game.complete_skill_selection(skill1)
+            self.assertEqual(len(game.selected_skills), 1)
+            self.assertEqual(game.selected_skills[0].level, 1)
+
+            # Upgrade: DAMAGE L2
+            skill2 = Skill(SkillType.DAMAGE, "Piercing Shot (Level 2)")
+            skill2.level = 2
+            game.complete_skill_selection(skill2)
+
+            # Should still be one entry, upgraded to level 2
+            self.assertEqual(len(game.selected_skills), 1,
+                             "Upgrading should not add a duplicate entry")
+            self.assertEqual(game.selected_skills[0].level, 2)
+            self.assertEqual(game.global_skill_levels[SkillType.DAMAGE], 2)
+
+    def test_double_dispatch_same_object_is_ignored(self):
+        """Calling complete_skill_selection twice with the same Skill object is a no-op."""
+        with mock.patch('pygame.display.set_mode'):
+            game = GameEngine(800, 600)
+            game.start_game(initial_skill_draft=False)
+
+            skill = Skill(SkillType.DAMAGE, "Damage")
+            skill.level = 1
+            game.complete_skill_selection(skill)
+            self.assertEqual(len(game.selected_skills), 1)
+
+            # Same object again (simulates pygbag double-dispatch)
+            game.complete_skill_selection(skill)
+            self.assertEqual(len(game.selected_skills), 1,
+                             "Double-dispatch should not duplicate")
+
 
 if __name__ == '__main__':
     unittest.main()
