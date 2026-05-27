@@ -60,14 +60,12 @@ class Viewport:
     # ── Speed conversion ────────────────────────────────────────────
 
     def nspeed(self, old_px_per_frame: float, fps: float = 60.0) -> float:
-        """Convert old pixel/frame speed to normalized/sec.
-        e.g. 7 px/frame at 60fps → (7*60)/1024 ≈ 0.41 n/s.
-        """
-        return (old_px_per_frame * fps) / self._ref_w
+        """Convert old pixel/frame speed to normalized/sec using actual screen width."""
+        return (old_px_per_frame * fps) / self.w
 
     def nspeed_y(self, old_px_per_frame: float, fps: float = 60.0) -> float:
         """Same as nspeed but normalized against height."""
-        return (old_px_per_frame * fps) / self._ref_h
+        return (old_px_per_frame * fps) / self.h
 
     # ── Legacy helpers (bridge old pixel → normalized) ──────────────
 
@@ -80,8 +78,8 @@ class Viewport:
         return old_px / self._ref_h
 
     def legacy_s(self, old_px: float) -> float:
-        """Old pixel size → normalized (fraction of min dimension)."""
-        return old_px / min(self._ref_w, self._ref_h)
+        """Old pixel size → normalized (fraction of current min screen dimension)."""
+        return old_px / min(self.w, self.h)
 
     def legacy_rect(self, x: float, y: float, w: float, h: float) -> pygame.Rect:
         """Old pixel rect → normalized rect → projected back.
