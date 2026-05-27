@@ -5,13 +5,16 @@ on:
     branches: [feat/android-port]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -23,9 +26,13 @@ jobs:
       - name: Build WebAssembly
         run: pygbag --build src/
 
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: src/build/web
-          publish_branch: gh-pages
+          path: src/build/web
+
+      - name: Deploy
+        uses: actions/deploy-pages@v4
