@@ -29,16 +29,14 @@ from game.entities.paddle import Paddle
 from game.entities.ball import Ball
 from game.entities.brick import BRICK_KIND_INFO, BrickGrid, BrickKind
 from game.entities.enemy import BaseEnemy, BossEnemy, Enemy, EnemyShot
-from game.roguelite.bullet import LaserBullet
 from game.input import ACTIONS, KeyBindings
 from game.roguelite.skill import Skill, SkillType, SkillCard, SKILL_GUIDE, SKILL_META, skill_synergy, skill_upgrade_hint
 from game.skill_descriptions import get_description, HIGH_SCORE_LIMIT
 import game.roguelite.effects as effects_module
 from game.roguelite.effects import RunState
+from game.roguelite.bullet import LaserBullet
 from game.particles.particle import Particle
 
-# Android touch support
-from game.android_touch import AndroidInput
 from game.viewport import Viewport
 
 SAVE_VERSION = 1
@@ -75,7 +73,7 @@ class GameEngine:
         pygame.display.set_caption("Arkanoid Roguelite - Pixel Edition")
         self.clock = pygame.time.Clock()
         self.running = True
-        self.playfield_top_n = self.viewport.legacy_y(154)  # ~0.20
+        self.playfield_top = 154
         self.run_seed = random.randint(0, 2**31 - 1)
         
         # Game State
@@ -86,12 +84,12 @@ class GameEngine:
         self.full_skill_pool = list(SkillType)
         
         # Entities
-        self.paddle = Paddle(self.viewport)
-        self.balls = [Ball(self.viewport, self.paddle)]
+        self.paddle = Paddle(width, height)
+        self.balls = [Ball(width, height, self.paddle)]
         self.bullets = []
         self.enemies = []
         self.enemy_shots = []
-        self.brick_grid = BrickGrid(self.viewport, top_n=self.playfield_top_n + self.viewport.legacy_y(45), seed=self.run_seed)
+        self.brick_grid = BrickGrid(width, height, top=self.playfield_top + 45, seed=self.run_seed)
         self.current_boss_id = None
         self.run_state = RunState()
         self.global_skill_levels = {}
@@ -134,9 +132,6 @@ class GameEngine:
         
         # Fonts
         pygame.font.init()
-
-        # Android touch input (initialized lazily — only created if MOUSEBUTTONDOWN or FINGERDOWN detected)
-        self.android_input = AndroidInput()
 
         # State dispatch tables
         self._SAVEABLE_STATES = ("PLAYING", "PAUSED", "SKILL_SELECTION", "LEVEL_SUMMARY", "BRICK_INTRO", "BOSS_INTRO")
@@ -192,19 +187,9 @@ class GameEngine:
             self.draw()
 
     def handle_events(self):
-        # Process Android touch events before standard event handling
-        raw_events = pygame.event.get()
-        self.android_input.update_touch_events(raw_events, self.width, self.height)
-
-        for event in raw_events:
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-                continue
-
-            # Skip raw finger events on Android (handled by AndroidInput)
-            if event.type in (pygame.FINGERDOWN, pygame.FINGERUP, pygame.FINGERMOTION):
-                continue
-
             if event.type == pygame.KEYDOWN:
                 if self.state in ("CONTROLS", "SETTINGS", "SKILL_GUIDE"):
                     self._handle_keydown_modal(event)
@@ -249,18 +234,6 @@ class GameEngine:
                 handler = self._MOUSE_HANDLERS.get(self.state)
                 if handler:
                     handler(event)
-
-        # Handle Android menu tap (tap not on a virtual button)
-        menu = self.android_input.menu_action()
-        if menu:
-            action, pos = menu
-            if action == "confirm":
-                # Treat as mouse click in menu states
-                handler = self._MOUSE_HANDLERS.get(self.state)
-                if handler:
-                    # Create a synthetic mouse event
-                    click_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": pos, "button": 1})
-                    handler(click_event)
 
         # Key-polling for held-down confirm in certain states
         poll_handler = self._POLL_HANDLERS.get(self.state)
@@ -542,11 +515,7 @@ class GameEngine:
             return
 
         keys = pygame.key.get_pressed()
-
-        # Android touch: get paddle target from finger position (already normalized [0,1])
-        touch_nx = self.android_input.paddle_target_x(1.0)
-
-        self.paddle.move(keys, self.keybindings, touch_nx=touch_nx)
+        self.paddle.move(self.width, keys, self.keybindings)
         self.update_helper_paddles()
         self.update_active_skills(keys, dt)
         
@@ -596,7 +565,7 @@ class GameEngine:
                 from game.particles.particle import Particle
                 self.particle_system.append(Particle(
                     b.rect.centerx, b.rect.centery, b._trail_color, speed=1, size_range=(1, 2)))
-            if b.rect.top < self.playfield_top_n:
+            if b.rect.top < self.playfield_top:
                 b.active = False
         self.bullets = [b for b in self.bullets if b.active]
 
@@ -623,7 +592,7 @@ class GameEngine:
             effects_module.apply_gravity_well(ball, self.paddle, self.selected_skills, self.gravity_well_active)
             effects_module.apply_stasis_field(ball, self.paddle, self.selected_skills)
             effects_module.apply_time_warp(ball, self.paddle, self.selected_skills)
-            hit_brick = ball.update([self.brick_grid], apply_damage=False, playfield_top_n=self.playfield_top_n)
+            hit_brick = ball.update(self.width, self.height, [self.brick_grid], apply_damage=False, playfield_top=self.playfield_top)
             
             if ball.hit_paddle:
                 self.audio.play("paddle", 0.75)
@@ -730,9 +699,9 @@ class GameEngine:
             for enemy in self.enemies:
                 if enemy.active and ball.rect.colliderect(enemy.rect):
                     enemy.take_damage(1)
-                    ball.ndy = -abs(ball.ndy)
+                    ball.dy = -abs(ball.dy)
                     ball.rect.bottom = enemy.rect.top
-                    ball.ny = ball.rect.centery
+                    ball.y = ball.rect.centery
                     self.score += 40 + self.level * 6
                     self.spawn_enemy_particles(enemy)
                     self.audio.play("break", 0.75)
@@ -780,7 +749,7 @@ class GameEngine:
                     overlap_y = min(b1.rect.bottom, b2.rect.bottom) - max(b1.rect.top, b2.rect.top)
                     
                     if overlap_x < overlap_y:
-                        b1.ndx, b2.ndx = b2.ndx, b1.ndx
+                        b1.dx, b2.dx = b2.dx, b1.dx
                         if b1.rect.centerx < b2.rect.centerx:
                             b1.rect.x -= overlap_x / 2
                             b2.rect.x += overlap_x / 2
@@ -788,7 +757,7 @@ class GameEngine:
                             b1.rect.x += overlap_x / 2
                             b2.rect.x -= overlap_x / 2
                     else:
-                        b1.ndy, b2.ndy = b2.ndy, b1.ndy
+                        b1.dy, b2.dy = b2.dy, b1.dy
                         if b1.rect.centery < b2.rect.centery:
                             b1.rect.y -= overlap_y / 2
                             b2.rect.y += overlap_y / 2
@@ -939,7 +908,7 @@ class GameEngine:
         boss = self.ensure_boss_for_level()
         if boss is None:
             return None
-        enemy = BossEnemy(boss, self.level, self.width, self.playfield_top_n)
+        enemy = BossEnemy(boss, self.level, self.width, self.playfield_top)
         if hp is not None:
             enemy.hp = max(0, min(enemy.max_hp, int(hp)))
             enemy.active = enemy.hp > 0
@@ -1005,7 +974,7 @@ class GameEngine:
             return
         count = 1 + (1 if self.level >= 7 else 0) + (1 if self.level >= 12 else 0) + (1 if self.level >= 18 else 0) + (1 if self.level >= 25 else 0)
         spacing = self.width / (count + 1)
-        y = self.playfield_top_n + 34
+        y = self.playfield_top + 34
         for index in range(count):
             self.spawn_enemy(spacing * (index + 1), y + (index % 2) * 28)
 
@@ -1043,26 +1012,24 @@ class GameEngine:
     def reset_after_life_loss(self):
         self.run_state.energy = 0  # reset vampire charge on life loss
         self.run_state.balls_count = 1
-        self.balls = [Ball(self.viewport, self.paddle)]
+        self.balls = [Ball(self.width, self.height, self.paddle)]
         self.bullets = []
         self.enemy_shots = []
-        self.paddle.nx = 0.5 - self.paddle.nw / 2
-        self.paddle.ny = 1.0 - self.viewport.legacy_y(40) - self.paddle.nh
-        self.paddle.rect = self.paddle._compute_rect()
+        self.paddle.rect.x = int((self.width - self.paddle.width) / 2)
+        self.paddle.rect.y = self.height - 40
+        self.paddle.x = self.paddle.rect.x
+        self.paddle.y = self.paddle.rect.y
         self.update_helper_paddles()
 
     def update_active_skills(self, keys, dt):
         self.cannon_cooldown = max(0, self.cannon_cooldown - dt)
         self.seeker_cooldown = max(0, self.seeker_cooldown - dt)
-        self.gravity_well_active = (
-            self.keybindings.action_down(keys, "down")
-            or self.android_input.wants_action("down")
-        ) and effects_module.skill_count(self.selected_skills, SkillType.GRAVITY_WELL) > 0
+        self.gravity_well_active = self.keybindings.action_down(keys, "down") and effects_module.skill_count(self.selected_skills, SkillType.GRAVITY_WELL) > 0
         if self.gravity_well_active and not self.gravity_well_was_active:
             self.audio.play("well", 0.65)
         self.gravity_well_was_active = self.gravity_well_active
 
-        if self.keybindings.action_down(keys, "up") or self.android_input.wants_action("up"):
+        if self.keybindings.action_down(keys, "up"):
             self.fire_cannon()
         self.fire_seeker()
 
@@ -1138,8 +1105,8 @@ class GameEngine:
         card_count = min(len(self.full_skill_pool), 3 + min(2, choice_count))
         selected_types = list(sample(self.full_skill_pool, card_count))
         self.build_skill_cards(selected_types)
-        self.paddle.nx = 0.5 - self.paddle.nw / 2
-        self.paddle.rect = self.paddle._compute_rect()
+        self.paddle.rect.x = int((self.width - self.paddle.width) / 2)
+        self.paddle.x = self.paddle.rect.x
         self.save_run()
 
     def build_skill_cards(self, selected_types):
@@ -1169,9 +1136,9 @@ class GameEngine:
             overflow_heals = max(0, skill.level - missing_lives)
             self.shield_charges += overflow_heals  # no bonus shield
         boss = self.ensure_boss_for_level()
-        self.brick_grid = BrickGrid(self.viewport, level=self.level, top_n=self.playfield_top_n + self.viewport.legacy_y(45), boss_id=boss.boss_id if boss else None, seed=self.run_seed)
+        self.brick_grid = BrickGrid(self.width, self.height, level=self.level, top=self.playfield_top + 45, boss_id=boss.boss_id if boss else None, seed=self.run_seed)
         self.spawn_level_enemies()
-        self.balls = [Ball(self.viewport, self.paddle)]
+        self.balls = [Ball(self.width, self.height, self.paddle)]
         self.bullets = []
         effects_module.apply_skills_to_paddle(self.paddle, self.selected_skills)
         self.level_bricks_destroyed = 0
@@ -1242,19 +1209,19 @@ class GameEngine:
         self.shake_intensity = 0
         self.hit_pause_timer = 0.0
         self.paddle_feedback_timer = 0.0
-        self.paddle.reset()
+        self.paddle.reset(self.width, self.height)
         self.paddle.width_bonus = 0
         self.paddle.update_rect()
         self.run_state.energy = 0
         self.run_state.balls_count = 1
-        self.balls = [Ball(self.viewport, self.paddle)]
+        self.balls = [Ball(self.width, self.height, self.paddle)]
         if not initial_skill_draft:
             self.apply_level_difficulty_to_balls()
         self.bullets = []
         self.enemies = []
         self.enemy_shots = []
         self.particle_system = []
-        self.brick_grid = BrickGrid(self.viewport, level=self.level, top_n=self.playfield_top_n + self.viewport.legacy_y(45), seed=self.run_seed)
+        self.brick_grid = BrickGrid(self.width, self.height, level=self.level, top=self.playfield_top + 45, seed=self.run_seed)
         self.introduced_brick_kinds.update(self.level_special_kinds())
         if not initial_skill_draft:
             self.spawn_level_enemies()
@@ -1397,16 +1364,16 @@ class GameEngine:
 
         self.run_state.energy = int(data.get("energy", 0))
         self.run_state.balls_count = 1
-        self.paddle.reset()
+        self.paddle.reset(self.width, self.height)
         self.paddle.lives = int(data.get("lives", 3))
         effects_module.apply_skills_to_paddle(self.paddle, self.selected_skills)
         boss = self.current_boss_definition()
-        self.brick_grid = BrickGrid(self.viewport, level=self.level, top_n=self.playfield_top_n + self.viewport.legacy_y(45), boss_id=boss.boss_id if boss else None, seed=self.run_seed)
+        self.brick_grid = BrickGrid(self.width, self.height, level=self.level, top=self.playfield_top + 45, boss_id=boss.boss_id if boss else None, seed=self.run_seed)
         for brick, saved_brick in zip(self.brick_grid.bricks, data.get("bricks", [])):
             brick.active = bool(saved_brick.get("active", True))
             brick.hp = int(saved_brick.get("hp", brick.hp))
 
-        self.balls = [Ball(self.viewport, self.paddle)]
+        self.balls = [Ball(self.width, self.height, self.paddle)]
         for ball in self.balls:
             effects_module.apply_skills_to_ball(ball, self.selected_skills)
         self.apply_level_difficulty_to_balls()
@@ -1431,7 +1398,7 @@ class GameEngine:
     def special_kinds_through_level(self, level):
         kinds = set()
         for level_number in range(1, level + 1):
-            grid = BrickGrid(self.viewport, level=level_number, top_n=self.playfield_top_n + self.viewport.legacy_y(45), seed=self.run_seed)
+            grid = BrickGrid(self.width, self.height, level=level_number, top=self.playfield_top + 45, seed=self.run_seed)
             for brick in grid.bricks:
                 if brick.kind in BRICK_KIND_INFO:
                     kinds.add(brick.kind)
@@ -1560,15 +1527,13 @@ class GameEngine:
             draw_fn = self._DRAW_DISPATCH.get(self.state)
             if draw_fn:
                 draw_fn()
-
-        # Draw Android virtual buttons on top of everything
-        if self.state in ("PLAYING", "PAUSED"):
-            self.android_input.draw(self.screen, self.width, self.height)
-
+        
         pygame.display.flip()
 
     def draw_playing(self):
-        world = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        # Draw on logical 1024x768 surface, then scale to screen
+        log_w, log_h = int(self.viewport.lw), int(self.viewport.lh)
+        world = pygame.Surface((log_w, log_h), pygame.SRCALPHA)
         feedback = self.paddle_feedback_timer / 0.16 if self.paddle_feedback_timer > 0 else 0.0
         self.paddle.draw(world, feedback=feedback)
         self.draw_shield_aura(world)
@@ -1583,8 +1548,10 @@ class GameEngine:
         for shot in self.enemy_shots:
             shot.draw(world)
         self.brick_grid.draw(world)
-        pygame.draw.line(world, RETRO_PALETTE["line"], (0, self.playfield_top_n), (self.width, self.playfield_top_n), 1)
-        self.screen.blit(world, self.camera_offset())
+        pygame.draw.line(world, RETRO_PALETTE["line"], (0, self.playfield_top), (log_w, self.playfield_top), 1)
+        # Scale logical world to fit screen
+        scaled = pygame.transform.scale(world, (self.width, self.height))
+        self.screen.blit(scaled, self.camera_offset())
         self.draw_bottom_warning()
         screens.draw_hud(self.screen, self)
         screens.draw_boss_hud(self.screen, self)
@@ -1643,7 +1610,7 @@ class GameEngine:
                             surface.blit(dot, (hx + ox, hy))
 
     def draw_bottom_warning(self):
-        if not any(ball.active and ball.ndy > 0 and ball.rect.bottom > self.height - 150 for ball in self.balls):
+        if not any(ball.active and ball.dy > 0 and ball.rect.bottom > self.height - 150 for ball in self.balls):
             return
         warning = pygame.Rect(0, self.height - 68, self.width, 34)
         overlay = pygame.Surface(warning.size, pygame.SRCALPHA)
@@ -1709,10 +1676,10 @@ class GameEngine:
         speed_bonus = max(0, self.difficulty_speed_bonus() - stabilizer_count * 0.28)
         for ball in self.balls:
             target_speed = min(10.6, ball.speed + speed_bonus)
-            current_speed = max(0.01, math.hypot(ball.ndx, ball.ndy))
+            current_speed = max(0.01, math.hypot(ball.dx, ball.dy))
             scale = target_speed / current_speed
-            ball.ndx *= scale
-            ball.ndy *= scale
+            ball.dx *= scale
+            ball.dy *= scale
             ball.speed = target_speed
 
     def update_helper_paddles(self):
@@ -1783,7 +1750,7 @@ class GameEngine:
                 self.bullets.append(LaserBullet((ball.rect.centerx, ball.rect.centery - 6), dy=-8.5, color=color))
             self.audio.play("projectile", 0.75)
         if ricochet_count:
-            direction = 1 if ball.ndx >= 0 else -1
+            direction = 1 if ball.dx >= 0 else -1
             spread = min(3.5, 2.2 + ricochet_count * 0.30)
             damage = 1
             color = RETRO_PALETTE["brick3"]
@@ -1819,9 +1786,9 @@ class GameEngine:
         if brick.kind == BrickKind.PULSE and ball is not None:
             self.audio.play("pulse", 0.65)
             direction = 1 if ball.rect.centerx >= brick.rect.centerx else -1
-            ball.ndx += direction * 0.75
+            ball.dx += direction * 0.75
             limit = max(1.0, ball.speed * 1.05)
-            ball.ndx = max(-limit, min(limit, ball.ndx))
+            ball.dx = max(-limit, min(limit, ball.dx))
             # Pulse shockwave ring
             self._spawn_shockwave_ring(brick.rect.centerx, brick.rect.centery,
                                        RETRO_PALETTE["brick3"], count=6)
@@ -1894,25 +1861,25 @@ class GameEngine:
         if len(self.balls) >= 7:
             return False
         new_ball = self.clone_ball(ball)
-        new_ball.ndx = -ball.ndx if abs(ball.ndx) > ball.vp.nspeed(0.5) else ball.speed * 0.5
-        new_ball.ndy = -abs(ball.ndy) if ball.ndy > 0 else ball.ndy
+        new_ball.dx = -ball.dx if abs(ball.dx) > 0.5 else ball.speed * 0.5
+        new_ball.dy = -abs(ball.dy) if ball.dy > 0 else ball.dy
         self.balls.append(new_ball)
         self.run_state.balls_count = len(self.balls)
         self.audio.play("split", 0.75)
         return True
 
     def clone_ball(self, ball):
-        new_ball = Ball(self.viewport, self.paddle)
-        new_ball.nx = ball.nx
-        new_ball.ny = ball.ny
+        new_ball = Ball(self.width, self.height, self.paddle)
+        new_ball.x = ball.x
+        new_ball.y = ball.y
         new_ball.rect.center = ball.rect.center
         new_ball.speed = ball.speed
-        new_ball.nsize = ball.nsize
-        new_ball.base_nsize = ball.base_nsize
+        new_ball.size = ball.size
+        new_ball.base_size = ball.base_size
         new_ball.max_bounce_angle = ball.max_bounce_angle
         new_ball.center_nudge = ball.center_nudge
-        new_ball.ndx = ball.ndx
-        new_ball.ndy = ball.ndy
+        new_ball.dx = ball.dx
+        new_ball.dy = ball.dy
         return new_ball
 
     def trigger_split_charge(self, ball):
@@ -1922,7 +1889,7 @@ class GameEngine:
         self.split_charges -= 1
         self.audio.play("split", 0.85)
         new_ball = self.clone_ball(ball)
-        new_ball.ndx = -ball.ndx if abs(ball.ndx) > 0.4 else -ball.speed * 0.45
+        new_ball.dx = -ball.dx if abs(ball.dx) > 0.4 else -ball.speed * 0.45
         self.balls.append(new_ball)
 
 
