@@ -53,12 +53,14 @@ def handle_skills(engine, selected_skills: list, run_state: RunState, heal_alrea
 
 
 def apply_vampire(paddle, current_energy: int, selected_skills: list = None) -> int:
-    vampire_count = sum(1 for s in (selected_skills or []) if s.type.value == "vampire")
-    threshold = 8 + vampire_count * 2
+    vampire_count = skill_count(selected_skills or [], SkillType.VAMPIRE)
+    if vampire_count == 0:
+        return current_energy
+    threshold = 80 + vampire_count * 20  # ~40 hits base, less with upgrades
     if current_energy >= threshold:
-        if paddle.lives < 5:
+        if paddle.lives < 4:  # never stack past 4 lives
             paddle.lives += 1
-            return current_energy - threshold
+            return current_energy - threshold  # reset gauge, overflow carries
     return current_energy
 
 
@@ -153,7 +155,7 @@ def handle_brick_hit(brick, ball, selected_skills: list, run_state: RunState) ->
 def apply_heal(paddle, selected_skills: list) -> None:
     heal_count = skill_count(selected_skills, SkillType.HEAL)
     if heal_count > 0 and paddle.lives < 5:
-        paddle.lives = min(5, paddle.lives + min(heal_count, 2))
+        paddle.lives = min(5, paddle.lives + heal_count + 1)  # +2 lives at lv1, +3 at lv2
 
 
 def spawn_heal_particles(engine):
@@ -248,7 +250,7 @@ def apply_magnet(ball: Ball, paddle, selected_skills: list) -> None:
         return
 
     delta = paddle.rect.centerx - ball.rect.centerx
-    pull = max(-0.18 * magnet_count, min(0.18 * magnet_count, delta * 0.002 * magnet_count))
+    pull = max(-0.5 * magnet_count, min(0.5 * magnet_count, delta * 0.005 * magnet_count))
     ball.dx += pull
     max_dx = max(1.0, ball.speed * 0.9)
     ball.dx = max(-max_dx, min(max_dx, ball.dx))
@@ -286,7 +288,7 @@ def apply_stasis_field(ball: Ball, paddle, selected_skills: list) -> None:
 
 def apply_time_warp(ball, paddle, selected_skills: list) -> None:
     """Slows ball when near paddle, giving reaction time."""
-    warp_count = sum(1 for s in selected_skills if s.type.value == "timewarp")
+    warp_count = sum(1 for s in selected_skills if s.type == SkillType.TIME_WARP)
     if warp_count == 0:
         return
     zone = 160 + warp_count * 30
@@ -298,7 +300,7 @@ def apply_time_warp(ball, paddle, selected_skills: list) -> None:
 
 def apply_ghost_ball(brick, ball, selected_skills):
     """Ball pierces first brick without bouncing. Returns True if pierced."""
-    ghost_count = sum(1 for s in selected_skills if s.type.value == "ghost")
+    ghost_count = sum(1 for s in selected_skills if s.type == SkillType.GHOST_BALL)
     if ghost_count == 0 or ball is None:
         return False
     return True  # Engine handles the pierce logic
@@ -306,7 +308,7 @@ def apply_ghost_ball(brick, ball, selected_skills):
 
 def apply_score_boost(score, selected_skills):
     """Multiply score by boost factor."""
-    boost_count = sum(1 for s in selected_skills if s.type.value == "score+")
+    boost_count = sum(1 for s in selected_skills if s.type == SkillType.DAMAGE)  # score+ legacy
     if boost_count == 0:
         return score
     mult = 1.3 + (boost_count - 1) * 0.3
@@ -315,7 +317,7 @@ def apply_score_boost(score, selected_skills):
 
 def apply_life_steal(engine, selected_skills):
     """Chance to restore life on brick destruction."""
-    steal_count = sum(1 for s in selected_skills if s.type.value == "steal")
+    steal_count = sum(1 for s in selected_skills if s.type == SkillType.VAMPIRE)  # life-steal legacy
     if steal_count == 0:
         return
     import random

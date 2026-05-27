@@ -151,7 +151,8 @@ class GameEngine:
         self.shake_intensity = 0
         self.hit_pause_timer = 0.0
         self.paddle_feedback_timer = 0.0
-        
+        self._projectile_brick_damage = {}  # id(brick) → fractional damage accumulator
+
         # Fonts
         pygame.font.init()
 
@@ -729,7 +730,18 @@ class GameEngine:
                 continue
             pierce_count = effects_module.skill_count(self.selected_skills, SkillType.PIERCING_SHOTS)
             for brick in self.brick_grid.query_rect(bullet.rect):
-                destroyed = effects_module.damage_brick(brick, getattr(bullet, "damage", 1))
+                # Projectiles do 0.5 damage to bricks (ball is the main damage vector).
+                # Accumulate fractional damage; apply 1 real HP when 1.0 is reached.
+                raw_dmg = getattr(bullet, "damage", 1) * 0.5
+                brick_id = id(brick)
+                acc = self._projectile_brick_damage.get(brick_id, 0.0) + raw_dmg
+                applied = int(acc)  # floor: how many whole HP to remove
+                if applied > 0:
+                    self._projectile_brick_damage[brick_id] = acc - applied
+                    destroyed = effects_module.damage_brick(brick, applied)
+                else:
+                    self._projectile_brick_damage[brick_id] = acc
+                    destroyed = False
                 brick.hit_color = (255, 255, 255)
                 self._dirty_bricks.append(brick)
                 self.audio.play("break" if destroyed else "brick", 0.85)
@@ -744,11 +756,12 @@ class GameEngine:
                 else:
                     bullet.active = False
                 self.spawn_particles(brick, 7 if destroyed else 3, speed=4 if destroyed else 3, size_range=(2, 4) if destroyed else (1, 3))
-                break
+                break  # one brick hit per frame (piercing works cross-frame)
             if not bullet.active:
                 continue
             for enemy in self.enemies:
                 if enemy.active and bullet.rect.colliderect(enemy.rect):
+                    # Full damage to enemies (ball is for bricks, bullets for enemies)
                     destroyed = enemy.take_damage(getattr(bullet, "damage", 1))
                     remaining = self.get_bullet_pierce_remaining(bullet, pierce_count)
                     if remaining > 0:
@@ -1005,6 +1018,7 @@ class GameEngine:
         chained = []
         radius = 94 + spark_count * 18
         prev = source_brick
+        cumulative_dist = 0.0  # total distance through the chain from source
         for i in range(min(3, spark_count + 1)):
             candidates = [
                 brick for brick in self.brick_grid.bricks
@@ -1013,9 +1027,13 @@ class GameEngine:
             if not candidates:
                 break
             target = min(candidates, key=lambda brick: math.hypot(brick.rect.centerx - prev.rect.centerx, brick.rect.centery - prev.rect.centery))
-            if math.hypot(target.rect.centerx - prev.rect.centerx, target.rect.centery - prev.rect.centery) > radius:
+            hop_dist = math.hypot(target.rect.centerx - prev.rect.centerx, target.rect.centery - prev.rect.centery)
+            if hop_dist > radius:
                 break
-            dmg = 2 if i == 0 else 1
+            cumulative_dist += hop_dist
+            # Damage falls off with cumulative distance from source
+            ratio = min(1.0, cumulative_dist / radius)
+            dmg = max(1, round(3 - 2 * ratio))  # 3 near source → 1 at radius edge
             destroyed = effects_module.damage_brick(target, dmg)
             target.hit_color = (100, 200, 255)
             self.award_brick_score(target, destroyed)
@@ -1226,9 +1244,8 @@ class GameEngine:
         if skill.type == SkillType.SPLIT_CHARGE:
             self.split_charges += 1 + min(2, skill.level)
         if skill.type == SkillType.HEAL:
-            missing_lives = max(0, 5 - self.paddle.lives)
-            overflow_heals = max(0, skill.level - missing_lives)
-            self.shield_charges += overflow_heals  # no bonus shield
+            # Always get shields with HEAL: 1 per level + overflow from capped lives
+            self.shield_charges += 1 + max(0, skill.level - max(0, 5 - self.paddle.lives))
         boss = self.ensure_boss_for_level()
         self.brick_grid = BrickGrid(self.width, self.height, level=self.level, top=self.playfield_top + 45, boss_id=boss.boss_id if boss else None, seed=self.run_seed)
         self.spawn_level_enemies()
@@ -1294,6 +1311,7 @@ class GameEngine:
         self.introduced_brick_kinds = set()
         self.pending_brick_intro_kinds = []
         self._dirty_bricks = []  # bricks currently showing hit_color flash
+        self._projectile_brick_damage.clear()
         self.current_boss_id = None
         self.cannon_cooldown = 0
         self.seeker_cooldown = 0
@@ -1330,6 +1348,7 @@ class GameEngine:
         else:
             self.state = "PLAYING"
             self.level_start_score = self.score
+        self._projectile_brick_damage.clear()
         self.save_run()
 
     def restart_game(self):

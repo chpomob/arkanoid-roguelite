@@ -20,7 +20,7 @@ class TestHealSkill(unittest.TestCase):
         skills = [Skill(SkillType.HEAL, "Heal")]
         effects_module.apply_heal(paddle, skills)
         
-        self.assertEqual(paddle.lives, initial_lives + 1)
+        self.assertEqual(paddle.lives, initial_lives + 2)
 
     def test_apply_heal_has_max_limit(self):
         """Test that paddle lives cannot exceed 5 via heal."""

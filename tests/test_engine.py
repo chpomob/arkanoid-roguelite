@@ -334,7 +334,7 @@ class TestEngine(unittest.TestCase):
         game.complete_skill_selection(skill)
 
         self.assertEqual(game.paddle.lives, 5)
-        self.assertEqual(game.shield_charges, 1)  # overflow only, no bonus +1
+        self.assertEqual(game.shield_charges, 2)  # 1 guaranteed + 1 overflow
 
     def test_shield_aura_draws_without_crashing(self):
         """Test that the shield aura renders for charged shields."""

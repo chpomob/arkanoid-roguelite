@@ -70,13 +70,16 @@ class TestMultiBallSkill(unittest.TestCase):
 
 
 class TestVampireEnergy(unittest.TestCase):
+    def _vampire_skills(self, count=1):
+        return [Skill(SkillType.VAMPIRE, f"Vamp L{i+1}") for i in range(count)]
+
     def test_energy_decreases_on_heal(self):
-        """Test that energy decreases when a heal is triggered."""
+        """Test that energy decreases when a heal is triggered (~40 hits)."""
         paddle = mock.MagicMock()
         paddle.lives = 1
-        result_energy = effects_module.apply_vampire(paddle, 15)
+        result_energy = effects_module.apply_vampire(paddle, 105, self._vampire_skills(1))
         
-        self.assertEqual(result_energy, 7)
+        self.assertEqual(result_energy, 5)  # 105 - 100, overflow carries
         self.assertEqual(paddle.lives, 2)
 
     def test_energy_does_nothing_if_below_threshold(self):
@@ -84,20 +87,40 @@ class TestVampireEnergy(unittest.TestCase):
         paddle = mock.MagicMock()
         paddle.lives = 1
         
-        result_energy = effects_module.apply_vampire(paddle, 7)
+        result_energy = effects_module.apply_vampire(paddle, 50, self._vampire_skills(1))
         
-        self.assertEqual(result_energy, 7)
+        self.assertEqual(result_energy, 50)
         self.assertEqual(paddle.lives, 1)
 
     def test_energy_heals_at_threshold(self):
-        """Test that vampire healing triggers at the 8-energy threshold."""
+        """Test that vampire healing triggers at the 100-energy threshold (~40 hits)."""
         paddle = mock.MagicMock()
         paddle.lives = 1
 
-        result_energy = effects_module.apply_vampire(paddle, 8)
+        result_energy = effects_module.apply_vampire(paddle, 100, self._vampire_skills(1))
 
         self.assertEqual(result_energy, 0)
         self.assertEqual(paddle.lives, 2)
+
+    def test_vampire_no_skills_does_nothing(self):
+        """Test that without vampire skills, energy is never consumed."""
+        paddle = mock.MagicMock()
+        paddle.lives = 1
+
+        result_energy = effects_module.apply_vampire(paddle, 999)
+
+        self.assertEqual(result_energy, 999)
+        self.assertEqual(paddle.lives, 1)
+
+    def test_vampire_caps_at_4_lives(self):
+        """Test that vampire never pushes past 4 lives."""
+        paddle = mock.MagicMock()
+        paddle.lives = 4
+
+        result_energy = effects_module.apply_vampire(paddle, 100, self._vampire_skills(1))
+
+        self.assertEqual(result_energy, 100)  # not consumed
+        self.assertEqual(paddle.lives, 4)
 
 
 if __name__ == '__main__':

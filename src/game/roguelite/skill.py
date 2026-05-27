@@ -139,9 +139,9 @@ SKILL_GUIDE = {
         "scales": "More levels stack linearly with Focus damage.",
     },
     SkillType.VAMPIRE: {
-        "effect": "Brick hits build energy; at 10+ energy, a missing life is restored up to the life cap. Energy gain caps at 2 per hit.",
-        "use": "Passive. Keep pressure on bricks and prioritize Charge bricks.",
-        "scales": "Higher levels raise the heal threshold slightly but also boost energy per hit.",
+        "effect": "Brick hits build energy (capped at 2 per hit). Once per life bar, when energy reaches its threshold, a missing life is restored. Gauge resets on heal and on death.",
+        "use": "Passive sustain. Prioritize Charge bricks. One life max per gauge fill.",
+        "scales": "Higher levels reduce the energy threshold slightly.",
     },
     SkillType.MULTI_BALL: {
         "effect": "Adds extra active balls at the start of each level.",
@@ -164,9 +164,9 @@ SKILL_GUIDE = {
         "scales": "Each level adds more width, with Focus subtracting some width.",
     },
     SkillType.HEAL: {
-        "effect": "Immediately restores life, up to the life cap; overflow becomes shield charges.",
-        "use": "Instant passive. Pick when survival matters more than power.",
-        "scales": "Each level restores another life or converts excess healing into shields.",
+        "effect": "Immediately restores 2 lives (up to the life cap). Each HEAL level also grants shield charges.",
+        "use": "Instant passive. Strong safety net — pick when survival matters more than power.",
+        "scales": "Higher levels restore more lives and grant additional shields.",
     },
     SkillType.CONTROL: {
         "effect": "Widened paddle aiming range and stronger anti-vertical nudge.",
@@ -189,9 +189,9 @@ SKILL_GUIDE = {
         "scales": "Each level adds another shield charge and strengthens the paddle aura.",
     },
     SkillType.MAGNET: {
-        "effect": "Falling balls are gently pulled toward the paddle.",
-        "use": "Passive. Works only while the ball is falling.",
-        "scales": "Each level increases pull strength.",
+        "effect": "Falling balls are strongly pulled toward the paddle center.",
+        "use": "Passive. Works only while the ball is falling. Good for recovery after crowded clears.",
+        "scales": "Each level significantly increases pull strength.",
     },
     SkillType.CHOICE: {
         "effect": "Adds extra options to future upgrade drafts.",
@@ -254,9 +254,9 @@ SKILL_GUIDE = {
         "scales": "Each level lets shots pierce one more target.",
     },
     SkillType.CHAIN_SPARK: {
-        "effect": "Ball hits arc damage into nearby active bricks.",
-        "use": "Passive. Strong into clustered formations without requiring brick destruction.",
-        "scales": "Upgrades add more chained targets.",
+        "effect": "Ball hits arc damage into nearby active bricks. Damage falls off with chain distance (max near source, min 1 at range edge).",
+        "use": "Passive. Strong into clustered formations. Best when bricks are tightly packed.",
+        "scales": "Upgrades add more chained targets and extend chain radius.",
     },
     SkillType.STASIS_FIELD: {
         "effect": "Falling balls slow slightly near the paddle.",
