@@ -23,11 +23,16 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
 
+      - name: Build APK (first pass — downloads SDK/NDK)
+        continue-on-error: true
+        run: buildozer android debug || true
+
       - name: Accept Android licenses
         run: |
-          yes | sdkmanager --licenses 2>/dev/null || true
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+          if [ -f "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses
+          fi
 
       - name: Build APK
         run: buildozer android debug
