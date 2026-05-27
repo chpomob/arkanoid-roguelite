@@ -1,4 +1,5 @@
 """Tests for Ball collision mechanics"""
+import inspect
 import unittest
 import sys
 import os
@@ -6,10 +7,43 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 import pygame
+import game.engine as engine_module
 import game.entities.ball as ball_module
 import game.entities.paddle as paddle_module
 import game.entities.brick as brick_module
 import math
+
+
+class SpatialOnlyLayer:
+    def __init__(self, bricks, name=None, order_log=None):
+        self._bricks = bricks
+        self.name = name
+        self.order_log = order_log
+        self.query_count = 0
+        self.query_calls = []
+
+    @property
+    def bricks(self):
+        raise AssertionError("Ball.update must use query_rect() instead of iterating bricks")
+
+    def query_rect(self, rect, active_only=True):
+        self.query_count += 1
+        self.query_calls.append((rect.copy(), active_only))
+        if self.order_log is not None:
+            self.order_log.append(self.name)
+        return [
+            candidate
+            for candidate in self._bricks
+            if (candidate.active or not active_only) and rect.colliderect(candidate.rect)
+        ]
+
+
+def position_ball_to_enter_brick_from_left(ball, brick, dx=2):
+    ball.rect.midright = (brick.rect.left - 1, brick.rect.centery)
+    ball.x = ball.rect.centerx
+    ball.y = ball.rect.centery
+    ball.dx = dx
+    ball.dy = 0
 
 
 class TestPaddleBallCollision(unittest.TestCase):
@@ -154,6 +188,91 @@ class TestPaddleBallCollision(unittest.TestCase):
 
 
 class TestBrickBallCollision(unittest.TestCase):
+    # Spatial contract regressions live here because they protect Ball.update's brick collision path.
+    def test_brick_grid_query_rect_signature_matches_spatial_contract(self):
+        """Test that BrickGrid.query_rect keeps the contract Ball.update relies on."""
+        signature = inspect.signature(brick_module.BrickGrid.query_rect)
+        parameters = list(signature.parameters.values())
+
+        self.assertEqual([parameter.name for parameter in parameters], ["self", "rect", "active_only"])
+        self.assertEqual(parameters[2].default, True)
+
+    def test_ball_update_uses_spatial_query_layer(self):
+        """Test that Ball.update queries candidate bricks through the spatial index."""
+        width, height = 1024, 768
+        paddle = paddle_module.Paddle(width, height)
+        ball = ball_module.Ball(width, height, paddle)
+        brick = brick_module.Brick(pygame.Rect(500, 500, 20, 20), hp=2)
+        brick.active = True
+        self.assertTrue(brick.active)
+
+        position_ball_to_enter_brick_from_left(ball, brick)
+        layer = SpatialOnlyLayer([brick])
+
+        hit = ball.update(width, height, [layer], apply_damage=True)
+
+        self.assertIs(hit, brick)
+        self.assertGreaterEqual(layer.query_count, 1)
+        self.assertTrue(all(active_only for _, active_only in layer.query_calls))
+        self.assertEqual(brick.hp, 1)
+
+    def test_ball_update_requires_query_rect_layer(self):
+        """Test that Ball.update does not silently fall back to iterating .bricks."""
+        width, height = 1024, 768
+        paddle = paddle_module.Paddle(width, height)
+        ball = ball_module.Ball(width, height, paddle)
+        brick = brick_module.Brick(pygame.Rect(500, 500, 20, 20), hp=2)
+        brick.active = True
+        position_ball_to_enter_brick_from_left(ball, brick)
+
+        class BricksOnlyLayer:
+            def __init__(self, bricks):
+                self.bricks = bricks
+
+        with self.assertRaises(AttributeError):
+            ball.update(width, height, [BricksOnlyLayer([brick])])
+
+    def test_ball_update_queries_all_layers_in_order(self):
+        """Test that Ball.update keeps iterating spatial layers in caller order."""
+        width, height = 1024, 768
+        paddle = paddle_module.Paddle(width, height)
+        ball = ball_module.Ball(width, height, paddle)
+        brick = brick_module.Brick(pygame.Rect(500, 500, 20, 20), hp=2)
+        brick.active = True
+        position_ball_to_enter_brick_from_left(ball, brick)
+        query_order = []
+        empty_layer = SpatialOnlyLayer([], name="empty", order_log=query_order)
+        target_layer = SpatialOnlyLayer([brick], name="target", order_log=query_order)
+
+        hit = ball.update(width, height, [empty_layer, target_layer], apply_damage=True)
+
+        self.assertIs(hit, brick)
+        self.assertEqual(query_order, ["empty", "target"])
+        self.assertGreaterEqual(empty_layer.query_count, 1)
+        self.assertGreaterEqual(target_layer.query_count, 1)
+
+    def test_engine_update_balls_passes_brick_grid_as_spatial_layer(self):
+        """Test that GameEngine.update_balls passes BrickGrid itself to Ball.update."""
+        try:
+            game = engine_module.GameEngine(1024, 768)
+        except Exception as e:
+            self.skipTest(f"Pygame display or init failed: {e}")
+        game.start_game(initial_skill_draft=False)
+
+        brick = brick_module.Brick(pygame.Rect(500, 500, 20, 20), hp=2)
+        brick.active = True
+        layer = SpatialOnlyLayer([brick])
+        ball = game.balls[0]
+        position_ball_to_enter_brick_from_left(ball, brick)
+        game.brick_grid = layer
+        game.selected_skills = []
+
+        active_balls = game.update_balls()
+
+        self.assertEqual(active_balls, 1)
+        self.assertGreaterEqual(layer.query_count, 1)
+        self.assertEqual(brick.hp, 1)
+
     def test_brick_damage_on_hit(self):
         """Test that ball hitting a brick damages it."""
         width, height = 1024, 768
