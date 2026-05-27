@@ -1,42 +1,89 @@
+```json
 {
   "findings": [
     {
       "id": "F1",
-      "severity": "blocker",
-      "file": "TASK",
-      "line": 1,
-      "category": "correctness",
-      "description": "Aucun code ni diff reviewable n'est fourni. Le contenu est un message de demande de permission, pas l'implementation de `viewport.py` ni les modifications de `paddle.py`, `ball.py`, `engine.py` ou des tests.",
-      "suggestion": "Fournir le patch complet, le diff git, ou les fichiers modifies avant review. Sans artefact technique, le verdict ne peut pas valider la migration."
+      "severity": "major",
+      "file": "tests/test_ball_collisions.py",
+      "line": 178,
+      "category": "testing",
+      "description": "L'assertion `self.assertEqual(layer.query_count, 1)` verrouille l'implementation a EXACTEMENT un appel a query_rect par update. Toute optimisation legitime (collision balayee X/Y, sous-stepping pour balles rapides, query separe pour swept-AABB) cassera ce test alors meme que le comportement reste correct. Le but du test de regression est de garantir l'usage de query_rect, pas son cardinal.",
+      "suggestion": "Remplacer par `self.assertGreaterEqual(layer.query_count, 1)`. Si l'on veut surveiller la perf, ajouter un test perf separe (assertion sur l'ordre de grandeur, pas l'egalite stricte)."
     },
     {
       "id": "F2",
       "severity": "major",
-      "file": "TASK",
-      "line": 1,
-      "category": "error_handling",
-      "description": "Le message affirme que l'ecriture de `viewport.py` a ete refusee, mais ne donne ni l'erreur exacte, ni le chemin absolu, ni la commande/outillage utilise. Cela rend le diagnostic impossible et peut masquer un probleme simple de chemin, sandbox, cwd ou permissions.",
-      "suggestion": "Inclure l'erreur brute, le chemin cible exact, l'operation tentee et l'etat du repertoire de travail. Proposer ensuite une action minimale et verifiable."
+      "file": "tests/test_ball_collisions.py",
+      "line": 173,
+      "category": "testing",
+      "description": "Le test force `ball.dx = 0` et `ball.dy = 0`, puis attend que query_rect soit appele et que la brique soit endommagee. C'est tres fragile: une optimisation triviale et legitime (skip collision si la velocite est nulle - cas typique des balles 'on paddle' au demarrage) ferait echouer le test sans aucune regression reelle. La logique adversaire-resistante doit utiliser une velocite non nulle qui amene effectivement la balle dans la brique pendant l'update.",
+      "suggestion": "Placer la balle juste en dehors de la brique et lui donner une velocite (ex: dx=2, dy=0) qui la fait penetrer pendant la frame. Ainsi le test exerce le vrai chemin de collision sans dependre d'un cas degenere."
     },
     {
       "id": "F3",
       "severity": "major",
-      "file": "TASK",
-      "line": 5,
-      "category": "design",
-      "description": "La demande d'autorisation est trop large: elle demande des permissions Write/Edit pour tout le projet avant de decrire precisement les fichiers a modifier et les changements prevus. C'est un mauvais contrat de modification et augmente le risque de changements non scopes.",
-      "suggestion": "Demander uniquement les droits necessaires pour une liste de fichiers precise, ou fournir un plan de migration avec patch separe par fichier avant d'appliquer les modifications."
+      "file": "tests/test_ball_collisions.py",
+      "line": 154,
+      "category": "testing",
+      "description": "La regression couvre uniquement `Ball.update()`. Aucun test ne verifie que `engine.update_balls()` passe bien `[self.brick_grid]` et non `self.bricks` (ou une liste brute). Le contrat 'engine -> ball.update' n'est pas verrouille: un refactor naif dans engine.py qui repasse une liste de Brick directement compilera et passera tous les tests Ball, mais regressera la perf en prod.",
+      "suggestion": "Ajouter un test sur `engine.update_balls()` qui injecte un brick_grid mock dont `.bricks` leve AssertionError mais qui expose query_rect, et verifier que l'update fonctionne. Ca verrouille les deux couches."
     },
     {
       "id": "F4",
-      "severity": "minor",
-      "file": "TASK",
-      "line": 9,
+      "severity": "major",
+      "file": "tests/test_ball_collisions.py",
+      "line": 162,
       "category": "testing",
-      "description": "Le message mentionne l'adaptation des tests sans preciser quels comportements seront couverts: conversion de coordonnees viewport, collisions, rendu, dimensions d'ecran, ou regression des entites existantes.",
-      "suggestion": "Lister les tests attendus et les invariants de migration avant implementation, notamment pour les collisions balle/paddle/briques et la compatibilite avec les dimensions existantes."
+      "description": "Le stub `SpatialOnlyLayer.bricks` ne capture pas tous les usages d'iteration. Si Ball.update() (ou un futur refactor) fait `hasattr(layer, 'query_rect')` puis fallback vers `layer.bricks`, le test passera silencieusement (le fallback ne sera jamais pris parce que query_rect existe). De plus, `getattr(layer, 'bricks', None)` retournerait le descriptor de la propriete, pas une erreur. Le test garantit 'query_rect est appele' mais PAS 'l'iteration directe a ete supprimee de la branche fallback'.",
+      "suggestion": "Ajouter un test complementaire qui verifie via inspection/source-scan ou via un layer qui n'a QUE `.bricks` (pas query_rect) que Ball.update refuse de fonctionner (leve AttributeError) - cela garantit qu'aucun fallback silencieux n'est tolere."
+    },
+    {
+      "id": "F5",
+      "severity": "minor",
+      "file": "tests/test_ball_collisions.py",
+      "line": 167,
+      "category": "design",
+      "description": "Le stub utilise `active_only=True` par defaut, mais le code prod appelle `brick_layer.query_rect(self.rect)` sans nommer ce kwarg. Si la signature reelle de BrickGrid.query_rect change (renommage, kwarg-only, ordre des positionnels), le stub continuera a 'fonctionner' tout en divergeant du contrat reel. Le test ne verrouille pas la signature.",
+      "suggestion": "Comparer explicitement la signature attendue (via inspect.signature) ou enregistrer les kwargs effectivement passes par Ball.update au stub, puis les asserter."
+    },
+    {
+      "id": "F6",
+      "severity": "minor",
+      "file": "tests/test_ball_collisions.py",
+      "line": 175,
+      "category": "testing",
+      "description": "Hypothese implicite que `brick.active` est truthy par defaut apres `Brick(rect, hp=2)`. Si une refonte du modele Brick passe a `active=False` par defaut (ex: bricks crees inactifs puis spawn), le filter `candidate.active or not active_only` retourne une liste vide et le test echoue de facon obscure ('hit is None') sans diagnostic clair.",
+      "suggestion": "Forcer explicitement `brick.active = True` apres construction, ou asserter `assert brick.active` avant l'update pour rendre l'hypothese visible."
+    },
+    {
+      "id": "F7",
+      "severity": "minor",
+      "file": "tests/test_ball_collisions.py",
+      "line": 180,
+      "category": "testing",
+      "description": "L'engine appelle `ball.update(..., apply_damage=False, playfield_top=...)`. Le test omet ces deux kwargs et tombe sur les defauts. Si `apply_damage` defaut bascule a False (changement compatible avec l'engine mais incompatible avec le test), `brick.hp == 1` echoue. Le test n'exerce pas la combinaison reelle utilisee par l'engine.",
+      "suggestion": "Soit aligner les arguments sur l'usage engine (apply_damage=False) + asserter que hp n'a PAS bouge, soit asserter explicitement apply_damage=True dans le test pour figer le contrat."
+    },
+    {
+      "id": "F8",
+      "severity": "nit",
+      "file": "tests/test_ball_collisions.py",
+      "line": 154,
+      "category": "style",
+      "description": "Le nom `test_ball_update_uses_spatial_query_layer` est descriptif mais le fichier `test_ball_collisions.py` melange tests fonctionnels et regression d'API. Avec le temps, ces tests d'invariant d'implementation devraient etre regroupes (test_ball_spatial_contract.py) pour signaler clairement leur nature 'lock-in'.",
+      "suggestion": "Optionnel: deplacer ce test dans un module dedie aux contrats d'invariants spatiaux, ou ajouter un commentaire d'en-tete expliquant que c'est un test de regression d'API."
+    },
+    {
+      "id": "F9",
+      "severity": "nit",
+      "file": "tests/test_ball_collisions.py",
+      "line": 158,
+      "category": "testing",
+      "description": "Aucun test ne couvre le cas multi-layers (Ball.update accepte une liste). Si un futur refactor passe a accepter un seul layer (et non une liste), ou inversement si on veut garantir l'ordre des layers, rien ne le verrouille.",
+      "suggestion": "Ajouter un test avec 2+ layers (un vide, un avec brique) pour figer le contrat 'iteration sur toutes les couches dans l'ordre fourni'."
     }
   ],
   "verdict": "REQUEST_CHANGES",
-  "summary": "1 blocker, 2 majors, 1 minor"
+  "summary": "0 blockers, 4 majors, 3 minors, 2 nits. Le test de regression atteint son but minimal (forcer query_rect) mais souffre de fragilites significatives: assertion stricte sur query_count, velocite nulle (cas degenere), absence de couverture engine.update_balls, et non-detection d'un fallback .bricks silencieux. Corriger F1-F4 avant de merger."
 }
+```

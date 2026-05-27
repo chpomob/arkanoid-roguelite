@@ -55,16 +55,16 @@ class TestSpecialBrickEffects(unittest.TestCase):
         with mock.patch('pygame.display.set_mode'):
             game = engine_module.GameEngine(800, 600)
             game.start_game(initial_skill_draft=False)
-            bomb = Brick(pygame.Rect(100, 100, 40, 20), hp=1, kind=BrickKind.BOMB)
-            nearby = Brick(pygame.Rect(150, 100, 40, 20), hp=2)
-            far = Brick(pygame.Rect(300, 100, 40, 20), hp=2)
+            bomb = Brick(pygame.Rect(100, 100, 40, 20), hp=100, kind=BrickKind.BOMB)
+            nearby = Brick(pygame.Rect(150, 100, 40, 20), hp=200)
+            far = Brick(pygame.Rect(300, 100, 40, 20), hp=200)
             game.brick_grid.bricks = [bomb, nearby, far]
 
-            bomb.take_damage(1)
+            bomb.take_damage(100)
             game.handle_special_brick_effects(bomb, destroyed=True)
 
-            self.assertEqual(nearby.hp, 1)
-            self.assertEqual(far.hp, 2)
+            self.assertEqual(nearby.hp, 100)
+            self.assertEqual(far.hp, 200)
 
     def test_pulse_brick_changes_ball_angle(self):
         """Test that pulse bricks add a small directional kick."""
@@ -98,15 +98,15 @@ class TestSpecialBrickEffects(unittest.TestCase):
         with mock.patch('pygame.display.set_mode'):
             game = engine_module.GameEngine(800, 600)
             game.start_game(initial_skill_draft=False)
-            regen = Brick(pygame.Rect(100, 100, 40, 20), hp=2, kind=BrickKind.REGEN)
-            damaged = Brick(pygame.Rect(145, 100, 40, 20), hp=3)
-            damaged.hp = 1
+            regen = Brick(pygame.Rect(100, 100, 40, 20), hp=200, kind=BrickKind.REGEN)
+            damaged = Brick(pygame.Rect(145, 100, 40, 20), hp=300)
+            damaged.hp = 100
             game.brick_grid.bricks = [regen, damaged]
 
             repaired = game.repair_nearby_brick(regen)
 
             self.assertTrue(repaired)
-            self.assertEqual(damaged.hp, 2)
+            self.assertEqual(damaged.hp, 200)
 
     def test_prism_brick_splits_ball_on_destroy(self):
         """Test that prism bricks create an extra ball when destroyed by a ball."""

@@ -130,7 +130,7 @@ def handle_brick_hit(brick, ball, selected_skills: list, run_state: RunState) ->
     focus_count = skill_count(selected_skills, SkillType.FOCUS)
     crit_count = skill_count(selected_skills, SkillType.CRITICAL_HIT)
     ghost_count = skill_count(selected_skills, SkillType.GHOST_BALL)
-    total_dmg = 1 + dmg_count + focus_count  # base 1, ghost no longer adds damage
+    total_dmg = (1 + dmg_count + focus_count) * 100  # base 100, ghost no longer adds damage
     # Critical hit: % chance to double damage
     if crit_count > 0:
         import random
@@ -139,7 +139,7 @@ def handle_brick_hit(brick, ball, selected_skills: list, run_state: RunState) ->
             total_dmg *= 2
             brick.hit_color = (255, 255, 0)
     else:
-        brick.hit_color = (255, 180, 30) if total_dmg >= 3 else (255, 255, 255)
+        brick.hit_color = (255, 180, 30) if total_dmg >= 300 else (255, 255, 255)
     if ghost_count > 0 and not (crit_count > 0):
         brick.hit_color = (150, 200, 255)
 
@@ -195,21 +195,21 @@ def apply_explosive(engine, source_brick, selected_skills: list) -> list:
         bh = brick_h + pad
         for cdx, cdy in cross_dirs:
             if abs(dx - cdx * bw) < bw * 0.6 and abs(dy - cdy * bh) < bh * 0.6:
-                destroyed = damage_brick(brick, 2)  # double damage to neighbors
+                destroyed = damage_brick(brick, 200)  # double damage to neighbors
                 brick.hit_color = (255, 140, 30)  # orange blast
                 damaged.append(brick)
                 if destroyed:
                     destroyed_in_blast.append(brick)
                 break
 
-    # Phase 2: Circular splash damage (1 HP to everything in radius)
+    # Phase 2: Circular splash damage (100 HP to everything in radius)
     for brick in engine.brick_grid.bricks:
         if brick is source_brick or not brick.active or brick in damaged:
             continue
         dx = brick.rect.centerx - source_brick.rect.centerx
         dy = brick.rect.centery - source_brick.rect.centery
         if math.hypot(dx, dy) <= radius:
-            destroyed = damage_brick(brick, 1)
+            destroyed = damage_brick(brick, 100)
             brick.hit_color = (255, 200, 80)  # yellow splash
             damaged.append(brick)
             if destroyed:
@@ -239,7 +239,7 @@ def _explosive_splash(engine, source_brick, radius):
         dx = brick.rect.centerx - source_brick.rect.centerx
         dy = brick.rect.centery - source_brick.rect.centery
         if math.hypot(dx, dy) <= radius:
-            damage_brick(brick, 1)
+            damage_brick(brick, 100)
             damaged.append(brick)
     return damaged
 

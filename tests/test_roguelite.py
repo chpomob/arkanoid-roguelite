@@ -51,7 +51,7 @@ class TestEffects(unittest.TestCase):
         """Test that handle_brick_hit correctly applies scaled damage."""
         class FakeBrick:
             def __init__(self):
-                self.hp = 10
+                self.hp = 1000
                 self.active = True
         
         brick = FakeBrick()
@@ -63,12 +63,12 @@ class TestEffects(unittest.TestCase):
         
         effects_module.handle_brick_hit(brick, ball, skills, rs)
         
-        # Base damage 1 + 2 damage_skills = 3
-        self.assertEqual(brick.hp, 7)  # 10 - (1 base + 2 damage) = 7
+        # Base damage 1 + 2 damage_skills = 3 → ×100 = 300
+        self.assertEqual(brick.hp, 700)  # 1000 - 300 = 700
         self.assertTrue(brick.active)
         
         effects_module.handle_brick_hit(brick, ball, skills, rs) # Hit again
-        self.assertEqual(brick.hp, 4)  # 7 - 3 = 4
+        self.assertEqual(brick.hp, 400)  # 700 - 300 = 400
 
     def test_handle_brick_hit_laser_return(self):
         """Test that handle_brick_hit correctly returns laser status."""

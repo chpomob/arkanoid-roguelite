@@ -259,7 +259,7 @@ class TestBrickBallCollision(unittest.TestCase):
             self.skipTest(f"Pygame display or init failed: {e}")
         game.start_game(initial_skill_draft=False)
 
-        brick = brick_module.Brick(pygame.Rect(500, 500, 20, 20), hp=2)
+        brick = brick_module.Brick(pygame.Rect(500, 500, 20, 20), hp=200)
         brick.active = True
         layer = SpatialOnlyLayer([brick])
         ball = game.balls[0]
@@ -271,7 +271,7 @@ class TestBrickBallCollision(unittest.TestCase):
 
         self.assertEqual(active_balls, 1)
         self.assertGreaterEqual(layer.query_count, 1)
-        self.assertEqual(brick.hp, 1)
+        self.assertEqual(brick.hp, 100)
 
     def test_brick_damage_on_hit(self):
         """Test that ball hitting a brick damages it."""

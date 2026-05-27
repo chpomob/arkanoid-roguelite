@@ -291,7 +291,7 @@ class BrickGrid:
             base_hp = 3 + min(10, (level - 18) // 2)
         row_bonus = 1 if row >= max(1, self.rows - 2) and level >= 3 else 0
         kind_bonus = 1 if kind == BrickKind.TOUGH else 0
-        return base_hp + row_bonus + kind_bonus
+        return (base_hp + row_bonus + kind_bonus) * 100
 
     @staticmethod
     def special_interval(level, base, floor):

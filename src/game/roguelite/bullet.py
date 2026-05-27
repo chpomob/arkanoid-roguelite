@@ -2,7 +2,7 @@ import pygame
 from game.assets import draw_projectile_sprite
 
 class LaserBullet:
-    def __init__(self, start_pos, dx=0, dy=None, damage=1, color=(255, 0, 0), bounces=0, bounds_width=None, bounds_height=None):
+    def __init__(self, start_pos, dx=0, dy=None, damage=100, color=(255, 0, 0), bounces=0, bounds_width=None, bounds_height=None):
         self.x = start_pos[0]
         self.y = start_pos[1]
         self.width = 4

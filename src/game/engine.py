@@ -793,7 +793,7 @@ class GameEngine:
                 continue
             for enemy in self.enemies:
                 if enemy.active and ball.rect.colliderect(enemy.rect):
-                    enemy.take_damage(1)
+                    enemy.take_damage(100)
                     ball.dy = -abs(ball.dy)
                     ball.rect.bottom = enemy.rect.top
                     ball.y = ball.rect.centery
@@ -1033,7 +1033,7 @@ class GameEngine:
             cumulative_dist += hop_dist
             # Damage falls off with cumulative distance from source
             ratio = min(1.0, cumulative_dist / radius)
-            dmg = max(1, round(3 - 2 * ratio))  # 3 near source → 1 at radius edge
+            dmg = max(100, round(300 - 200 * ratio))  # 300 near source → 100 at radius edge
             destroyed = effects_module.damage_brick(target, dmg)
             target.hit_color = (100, 200, 255)
             self.award_brick_score(target, destroyed)
@@ -1141,15 +1141,15 @@ class GameEngine:
         if cannon_count == 0 or self.cannon_cooldown > 0:
             return False
 
-        damage = 1  # base damage, no level scaling
+        damage = 100  # base damage, no level scaling
         color = RETRO_PALETTE["brick1"]
         bullet = LaserBullet((self.paddle.rect.centerx, self.paddle.rect.y - 6), damage=damage, color=color)
         bullet._trail_color = (255, 200, 50)
         self.bullets.append(bullet)
         if cannon_count >= 2:
             spread = min(1.4, 0.55 + cannon_count * 0.15)
-            self.bullets.append(LaserBullet((self.paddle.rect.centerx - 16, self.paddle.rect.y - 4), dx=-spread, damage=1, color=RETRO_PALETTE["accent"]))
-            self.bullets.append(LaserBullet((self.paddle.rect.centerx + 16, self.paddle.rect.y - 4), dx=spread, damage=1, color=RETRO_PALETTE["accent"]))
+            self.bullets.append(LaserBullet((self.paddle.rect.centerx - 16, self.paddle.rect.y - 4), dx=-spread, damage=100, color=RETRO_PALETTE["accent"]))
+            self.bullets.append(LaserBullet((self.paddle.rect.centerx + 16, self.paddle.rect.y - 4), dx=spread, damage=100, color=RETRO_PALETTE["accent"]))
 
         self.cannon_cooldown = max(0.70, 1.0 - (cannon_count - 1) * 0.05)
         self.audio.play("cannon")
@@ -1169,7 +1169,7 @@ class GameEngine:
         dy = target[1] - start[1]
         length = max(1.0, math.hypot(dx, dy))
         speed = min(11.0, 7.2 + seeker_count * 0.55)
-        damage = 1 + (1 if seeker_count >= 3 else 0)
+        damage = 100 + (100 if seeker_count >= 3 else 0)
         self.bullets.append(LaserBullet(
             start,
             dx=(dx / length) * speed,
@@ -1828,7 +1828,7 @@ class GameEngine:
                 for offset in [-20, 20]:
                     self.bullets.append(LaserBullet(
                         (self.paddle.rect.centerx + offset, self.paddle.rect.y - 10),
-                        dy=-8, color=color, damage=1))
+                        dy=-8, color=color, damage=100))
 
         if echo_count:
             width = min(92, 46 + echo_count * 10)
@@ -1869,7 +1869,7 @@ class GameEngine:
         ricochet_count = effects_module.skill_count(self.selected_skills, SkillType.RICOCHET)
         scatter_count = effects_module.skill_count(self.selected_skills, SkillType.SCATTER_SHOT)
         if laser_count:
-            bullet = LaserBullet(ball.rect.center, damage=1)
+            bullet = LaserBullet(ball.rect.center, damage=100)
             bullet._trail_color = (255, 100, 100)
             self.bullets.append(bullet)
             self.audio.play("projectile", 0.65)
@@ -1886,7 +1886,7 @@ class GameEngine:
         if ricochet_count:
             direction = 1 if ball.dx >= 0 else -1
             spread = min(3.5, 2.2 + ricochet_count * 0.30)
-            damage = 1
+            damage = 100
             color = RETRO_PALETTE["brick3"]
             self.bullets.append(LaserBullet(
                 (ball.rect.centerx, ball.rect.centery),
@@ -1909,7 +1909,7 @@ class GameEngine:
                     (ball.rect.centerx, ball.rect.centery),
                     dx=dx,
                     dy=-8.4,
-                    damage=1,
+                    damage=100,
                     color=color,
                     bounds_width=self.width,
                     bounds_height=self.height,
@@ -1939,7 +1939,7 @@ class GameEngine:
             self._spawn_explosion_burst(brick.rect.centerx, brick.rect.centery,
                                         brick.color, count=14)
             for nearby in self.brick_grid.get_nearby_bricks(brick, 74):
-                destroyed_nearby = effects_module.damage_brick(nearby, 1)
+                destroyed_nearby = effects_module.damage_brick(nearby, 100)
                 nearby.hit_color = (255, 255, 255)
                 self.award_brick_score(nearby, destroyed_nearby)
                 for _ in range(3):
@@ -1979,7 +1979,7 @@ class GameEngine:
         if not candidates:
             return False
         target = min(candidates, key=lambda brick: brick.hp)
-        target.hp += 1
+        target.hp += 100
         target.hit_color = RETRO_PALETTE["paddle"]
         self.audio.play("charge", 0.45)
         # Healing particles flow from source to target

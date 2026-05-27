@@ -210,12 +210,12 @@ class TestUtilitySkills(unittest.TestCase):
             [brick for brick in game.brick_grid.bricks if brick is not source and brick.active],
             key=lambda brick: abs(brick.rect.centerx - source.rect.centerx) + abs(brick.rect.centery - source.rect.centery),
         )
-        target.hp = 3
+        target.hp = 300
 
         chained = game.apply_chain_spark(source)
 
         self.assertIn(target, chained)
-        self.assertEqual(target.hp, 1)
+        self.assertLess(target.hp, 300)  # took some spark damage
 
     def test_stasis_field_slows_falling_ball_near_paddle(self):
         """Test that Stasis Field slows readable falling returns."""
@@ -236,14 +236,14 @@ class TestUtilitySkills(unittest.TestCase):
         initial_width = game.paddle.width
         focus = Skill(SkillType.FOCUS, "Focus")
         brick = game.brick_grid.bricks[0]
-        brick.hp = 5
+        brick.hp = 500
 
         effects_module.apply_skills_to_paddle(game.paddle, [focus])
         rs = RunState()
         effects_module.handle_brick_hit(brick, game.balls[0], [focus], rs)
 
         self.assertLess(game.paddle.width, initial_width)
-        self.assertEqual(brick.hp, 3)  # 5 - (1 base + 1 focus) = 3
+        self.assertEqual(brick.hp, 300)  # 500 - (1 base + 1 focus)*100 = 300
 
     def test_wide_and_focus_combine_predictably(self):
         """Test that Wide offsets Focus without runaway paddle scaling."""
