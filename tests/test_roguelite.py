@@ -12,7 +12,6 @@ import game.particles.particle as particle_module
 import game.entities.paddle as paddle_module
 from game.roguelite.skill import Skill, SkillType
 import pygame
-from game.viewport import Viewport
 pygame.init()
 
 # Initialize engine mock

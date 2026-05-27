@@ -6,7 +6,6 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 import pygame
-from game.viewport import Viewport
 import game.entities.ball as ball_module
 import game.entities.paddle as paddle_module
 import game.entities.brick as brick_module

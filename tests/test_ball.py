@@ -1,5 +1,4 @@
-"""Tests for Ball behavior — viewport-normalized."""
-import math
+"""Tests for Ball behavior"""
 import unittest
 import sys
 import os
@@ -8,60 +7,114 @@ pygame.init()
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from game.viewport import Viewport
 from game.entities.ball import Ball
 from game.entities.paddle import Paddle
 
 
 class TestBall(unittest.TestCase):
-    def setUp(self):
-        self.vp = Viewport(1024, 768)
-        self.paddle = Paddle(self.vp)
-        self.ball = Ball(self.vp, self.paddle)
-
-    def test_ball_initialization(self):
-        ball = Ball(self.vp, self.paddle)
+    def test_ball_init(self):
+        """Test basic ball initialization."""
+        width, height = 1024, 768
+        paddle = Paddle(width, height)
+        ball = Ball(width, height, paddle)
+        
+        self.assertIsNotNone(ball.rect)
+        self.assertEqual(ball.color, (255, 0, 255))
         self.assertTrue(ball.active)
-        self.assertAlmostEqual(ball.nsize, self.vp.legacy_s(12), places=5)
-        self.assertEqual(ball.nx, 0.5)
-        self.assertAlmostEqual(ball.ny, 0.5, places=2)
+
+    def test_ball_move_and_bounce(self):
+        """Test that ball movement and wall bouncing work as intended."""
+        width, height = 1024, 768
+        paddle = Paddle(width, height)
+        ball = Ball(width, height, paddle)
+        
+        # Ensure the ball is moving to the right for this specific test
+        ball.dx = abs(ball.dx) if ball.dx != 0 else 5
+        ball.dy = -ball.speed
+
+        # Check initial state
+        self.assertGreater(ball.dx, 0)
+        self.assertLess(ball.dy, 0) # Moving up initially
+        
+        # Move ball until it hits the right wall
+        while ball.rect.right < width:
+            ball.move(width, height)
+        
+        # Trigger one more move to hit the wall
+        ball.move(width, height)
+        
+        # Now it should have bounced
+        self.assertLess(ball.dx, 0)
 
     def test_wall_bounce_syncs_float_position(self):
-        ball = Ball(self.vp, self.paddle)
-        # Place ball at right wall
-        ball.nx = self.vp.legacy_x(800 - 2)
-        ball.ny = self.vp.legacy_y(300)
-        ball.sync_rect_to_position()
-        ball.ndx = self.vp.nspeed(12)
-        ball.ndy = 0
+        """Test that side-wall bounces do not leave stale off-screen coordinates."""
+        width, height = 800, 600
+        paddle = Paddle(width, height)
+        ball = Ball(width, height, paddle)
+        ball.x = width - 2
+        ball.y = 300
+        ball.rect.center = (int(ball.x), int(ball.y))
+        ball.dx = 12
+        ball.dy = 0
 
-        ball.move(self.vp.legacy_y(0))
+        ball.move(width, height)
 
-        # Should bounce (ndx becomes negative)
-        self.assertLess(ball.ndx, 0)
-        self.assertEqual(ball.rect.right, int(self.vp.w))
-        # Normalized x should match projected rect center
-        self.assertAlmostEqual(self.vp.px(ball.nx), ball.rect.centerx, delta=1)
+        self.assertLess(ball.dx, 0)
+        self.assertEqual(ball.rect.right, width)
+        self.assertEqual(ball.x, ball.rect.centerx)
 
     def test_wall_bounce_only_reverses_when_moving_into_wall(self):
-        ball = Ball(self.vp, self.paddle)
+        """Test that a clamped edge position does not flip an already escaping ball."""
+        width, height = 800, 600
+        paddle = Paddle(width, height)
+        ball = Ball(width, height, paddle)
         ball.rect.left = 0
-        ball.nx = self.vp.from_screen(*ball.rect.center)[0]
-        ball.ny = self.vp.from_screen(*ball.rect.center)[1]
-        ball.ndx = -self.vp.nspeed(3)
+        ball.x = ball.rect.centerx
+        ball.y = ball.rect.centery
+        ball.dx = 3
+        ball.dy = 0
 
-        ball.move(self.vp.legacy_y(0))
+        ball.move(width, height)
 
-        # Ball should NOT reverse — it was already moving away from wall
-        self.assertGreater(ball.ndx, 0)
+        self.assertGreater(ball.dx, 0)
 
     def test_shallow_left_wall_exit_does_not_stick_to_side(self):
-        ball = Ball(self.vp, self.paddle)
-        ball.rect.left = 1
-        ball.nx = self.vp.from_screen(*ball.rect.center)[0]
-        ball.ny = self.vp.from_screen(*ball.rect.center)[1]
-        ball.ndx = -self.vp.nspeed(0.4)
+        """Test that shallow positive horizontal motion escapes the left wall."""
+        width, height = 800, 600
+        paddle = Paddle(width, height)
+        ball = Ball(width, height, paddle)
+        ball.rect.left = 0
+        ball.x = ball.rect.centerx
+        ball.y = 300
+        ball.rect.centery = ball.y
+        ball.dx = 0.5
+        ball.dy = 6
 
-        ball.move(self.vp.legacy_y(0))
+        ball.move(width, height)
 
-        self.assertLess(ball.rect.left, 0)  # should not be clamped if still overlapping
+        self.assertGreater(ball.rect.left, 0)
+        self.assertGreaterEqual(ball.dx, ball.min_horizontal_speed)
+
+    def test_shallow_wall_bounce_separates_next_frame(self):
+        """Test that a shallow side bounce moves away from the wall on the next frame."""
+        width, height = 800, 600
+        paddle = Paddle(width, height)
+        ball = Ball(width, height, paddle)
+        ball.x = width - 3
+        ball.y = 300
+        ball.rect.center = (int(ball.x), int(ball.y))
+        ball.dx = 0.25
+        ball.dy = 6
+
+        ball.move(width, height)
+        self.assertLess(ball.dx, 0)
+        self.assertEqual(ball.rect.right, width)
+
+        ball.move(width, height)
+
+        self.assertLess(ball.rect.right, width)
+        self.assertLessEqual(ball.dx, -ball.min_horizontal_speed)
+
+
+if __name__ == '__main__':
+    unittest.main()
