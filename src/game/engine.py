@@ -1176,6 +1176,9 @@ class GameEngine:
             self.skill_cards.append(SkillCard(new_skill, start_x + i * (card_width + gap), y, card_width, card_height))
 
     def complete_skill_selection(self, skill):
+        # Deduplicate: double-dispatch on pygbag can fire this twice.
+        if any(s.type == skill.type for s in self.selected_skills):
+            return
         self.global_skill_levels[skill.type] = skill.level
         self.selected_skills.append(skill)
         if skill.type == SkillType.SHIELD:
@@ -1278,6 +1281,8 @@ class GameEngine:
             self.spawn_level_enemies()
         self.paddle.extra_rects = []
         if initial_skill_draft:
+            # Mix RNG with wall-clock ticks so WASM builds get variety
+            random.seed(self.run_seed ^ pygame.time.get_ticks())
             selected_types = list(sample(self.full_skill_pool, min(3, len(self.full_skill_pool))))
             self.build_skill_cards(selected_types)
             self.state = "SKILL_SELECTION"
