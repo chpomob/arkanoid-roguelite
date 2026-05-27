@@ -119,7 +119,7 @@ class BossEnemy(BaseEnemy):
         self.direction = 1
         self.cooldown = max(0.62, definition.cooldown - (definition.tier - 1) * 0.05)
         self.fire_timer = self.cooldown * 0.65
-        self.max_hp = (definition.hp + max(0, level - 5) // 2) * 100
+        self.max_hp = definition.hp + max(0, level - 5) // 2 * 100
         self.hp = self.max_hp
         self.active = True
         self.color = definition.color

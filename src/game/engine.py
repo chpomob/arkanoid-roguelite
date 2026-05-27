@@ -1084,7 +1084,7 @@ class GameEngine:
         self.score += hit_value
         if destroyed:
             base_value = BRICK_SCORE.get(brick.kind, BRICK_SCORE[BrickKind.NORMAL])
-            hp_bonus = max(0, brick.max_hp - 1) * 4
+            hp_bonus = max(0, (brick.max_hp // 100) - 1) * 4
             added = int((base_value + hp_bonus) * level_factor)
             added = effects_module.apply_score_boost(added, self.selected_skills)
             self.score += added

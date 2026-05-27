@@ -99,12 +99,20 @@ def draw_brick_sprite(surface, rect, color, marker=None, hp=1, max_hp=1):
     if marker:
         draw_special_brick_frame(surface, rect, color, marker)
 
-    if max_hp > 1:
+    # Normalize ×100 HP values for pip display
+    if max_hp > 100:
+        display_max = max_hp // 100
+        display_hp = (hp + 99) // 100  # ceiling so partial HP still shows a pip
+    else:
+        display_max = max_hp
+        display_hp = hp
+
+    if display_max > 1:
         pip_width = 5
-        start_x = rect.right - 7 - ((max_hp - 1) * (pip_width + 2))
-        for index in range(max_hp):
+        start_x = rect.right - 7 - ((display_max - 1) * (pip_width + 2))
+        for index in range(display_max):
             pip = pygame.Rect(start_x + index * (pip_width + 2), rect.bottom - 8, pip_width, 3)
-            pip_color = (255, 255, 255) if index < hp else shade(color, -90)
+            pip_color = (255, 255, 255) if index < display_hp else shade(color, -90)
             pygame.draw.rect(surface, pip_color, pip, border_radius=1)
 
     if marker:
