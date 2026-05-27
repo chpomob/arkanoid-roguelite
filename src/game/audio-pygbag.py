@@ -37,14 +37,11 @@ class SoundManager:
         for name in SOUND_NAMES:
             variants = []
             for variant in (0, 1, 2):
-                # Try .ogg first (pygbag auto-converts WAV→OGG), then .wav
-                for ext in (".ogg", ".wav"):
-                    path = os.path.join(sound_dir, f"{name}_{variant}{ext}")
-                    try:
-                        variants.append(pygame.mixer.Sound(path))
-                        break
-                    except (pygame.error, FileNotFoundError):
-                        continue
+                path = os.path.join(sound_dir, f"{name}_{variant}.ogg")
+                try:
+                    variants.append(pygame.mixer.Sound(path))
+                except (pygame.error, FileNotFoundError):
+                    pass
             if variants:
                 sounds[name] = variants
         return sounds
