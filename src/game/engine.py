@@ -378,7 +378,7 @@ class GameEngine:
             selected_card = next((card for card in self.skill_cards if card.selected), None)
             # Guard: don't auto-select on the very first frame in this state.
             # On WASM/pygbag, phantom key events can trigger immediate auto-pick.
-            if selected_card is None and self.skill_cards and self._skill_select_frame > 1:
+            if selected_card is None and self.skill_cards and self._skill_select_frame > 10:
                 selected_card = self.skill_cards[0]
             if selected_card is not None:
                 self.complete_skill_selection(selected_card.skill)
