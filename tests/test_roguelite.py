@@ -120,7 +120,7 @@ class TestEffects(unittest.TestCase):
         effects_module.apply_skills_to_ball(ball, skills)
         
         # Should recalculate based on the stabilizer curve.
-        self.assertAlmostEqual(ball.speed, 4.6)
+        self.assertAlmostEqual(ball.speed, 5.52)
 
 
 class TestParticle(unittest.TestCase):

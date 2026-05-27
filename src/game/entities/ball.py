@@ -5,12 +5,13 @@ from game.assets import draw_ball_sprite
 
 class Ball:
     def __init__(self, screen_width, screen_height, paddle, y_offset=0):
-        self.speed = 6
+        self._speed_base = 600  # ×100 units — skills modify this
+        self._speed_px = 6.0    # self._speed_base / 100, actual pixels/frame
         self.size = 12
         self.x = screen_width / 2
         self.y = screen_height / 2 + y_offset
-        self.dx = (self.speed * 0.5) * (1 if random.random() > 0.5 else -1)
-        self.dy = -self.speed
+        self.dx = (self._speed_px * 0.5) * (1 if random.random() > 0.5 else -1)
+        self.dy = -self._speed_px
         self.color = (255, 0, 255) # Magenta
         self.rect = pygame.Rect(self.x - self.size/2, self.y - self.size/2, self.size, self.size)
         self.paddle = paddle
@@ -26,6 +27,25 @@ class Ball:
 
     def sync_rect_to_position(self):
         self.rect.center = (int(self.x + 0.5), int(self.y + 0.5))
+
+    def sync_px_speed(self):
+        """Recalculate pixel speed from _speed_base, scale dx/dy proportionally."""
+        new_px = self._speed_base / 100.0
+        if self._speed_px > 0 and new_px != self._speed_px:
+            scale = new_px / self._speed_px
+            self.dx *= scale
+            self.dy *= scale
+        self._speed_px = new_px
+
+    @property
+    def speed(self):
+        return self._speed_base / 100.0  # pixel speed for external code
+
+    @speed.setter
+    def speed(self, value):
+        """Set _speed_base from a pixel-speed value (backward compat)."""
+        self._speed_base = int(round(value * 100))
+        self.sync_px_speed()
 
     def ensure_horizontal_motion(self, direction=None, minimum=None):
         minimum = self.min_horizontal_speed if minimum is None else minimum
