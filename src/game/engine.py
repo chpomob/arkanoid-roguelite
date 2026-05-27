@@ -1605,7 +1605,9 @@ class GameEngine:
         self.draw_bottom_warning()
         screens.draw_hud(self.screen, self)
         screens.draw_boss_hud(self.screen, self)
-        self.android_input.draw(self.screen)
+        # Virtual buttons only on Android touch; they overlap paddle on desktop/web
+        if os.environ.get("ANDROID_APP_PATH") or os.environ.get("ANDROID_ARGUMENT"):
+            self.android_input.draw(self.screen)
 
     def draw_shield_aura(self, surface):
         shield_level = effects_module.skill_count(self.selected_skills, SkillType.SHIELD)
