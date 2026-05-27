@@ -1749,8 +1749,15 @@ class GameEngine:
         if echo_count:
             width = min(92, 46 + echo_count * 10)
             y = self.paddle.rect.y - 68
+            # Smooth follow: echo paddle lags behind main paddle (inertia)
+            if not hasattr(self, '_echo_x'):
+                self._echo_x = float(self.paddle.rect.centerx)
+            target_x = float(self.paddle.rect.centerx)
+            # Lerp factor: higher echo_count = faster follow (less lag)
+            lerp = min(0.35, 0.08 + echo_count * 0.06)
+            self._echo_x += (target_x - self._echo_x) * lerp
             center = pygame.Rect(0, y, width, self.paddle.height)
-            center.centerx = self.paddle.rect.centerx
+            center.centerx = int(self._echo_x)
             center.x = max(0, min(self.width - width, center.x))
             self.paddle.extra_rects.append(center)
             if echo_count >= 2:
