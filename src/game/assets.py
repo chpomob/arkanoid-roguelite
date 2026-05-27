@@ -368,7 +368,10 @@ def draw_skill_icon(surface, rect, code, color):
     elif code == "SHD":
         pygame.draw.polygon(surface, color, [(center[0], rect.y + 8), (rect.right - 11, rect.y + 17), (rect.right - 15, rect.bottom - 12), (center[0], rect.bottom - 7), (rect.x + 15, rect.bottom - 12), (rect.x + 11, rect.y + 17)])
     else:
-        font = pygame.font.SysFont("dejavusansmono,consolas,arial", 15, True)
+        try:
+            font = pygame.font.SysFont("dejavusansmono,consolas,arial", 15, True)
+        except Exception:
+            font = pygame.font.Font(None, 15)
         text = font.render(code[:3], True, color)
         surface.blit(text, text.get_rect(center=center))
 

@@ -27,7 +27,15 @@ RETRO_PALETTE = {
 
 
 def _font(size, bold=False):
-    return pygame.font.SysFont("dejavusansmono,consolas,arial", size, bold)
+    try:
+        return pygame.font.SysFont("dejavusansmono,consolas,arial", size, bold)
+    except Exception:
+        pass
+    try:
+        return pygame.font.Font(None, size)
+    except Exception:
+        pass
+    return pygame.font.Font(None, size)
 
 
 def ui_time():
