@@ -1120,6 +1120,10 @@ class GameEngine:
         self.paddle.x = self.paddle.rect.x
         self.paddle.y = self.paddle.rect.y
         self.update_helper_paddles()
+        # Re-apply skills and difficulty so respawn ball matches current speed
+        for ball in self.balls:
+            effects_module.apply_skills_to_ball(ball, self.selected_skills)
+        self.apply_level_difficulty_to_balls()
 
     def update_active_skills(self, keys, dt):
         self.cannon_cooldown = max(0, self.cannon_cooldown - dt)

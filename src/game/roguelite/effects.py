@@ -98,7 +98,7 @@ def apply_skills_to_ball(ball: Ball, selected_skills: list) -> None:
     if not isinstance(base_size, (int, float)):
         base_size = 12
 
-    ball.speed = max(3.0, 6.0 * (1 - stabilizer_count * 0.08))
+    ball.speed = max(3.0, ball.speed * (1 - stabilizer_count * 0.08))
     ball.size = min(24, base_size + giant_count * 3)
     # Giant balls leave a particle trail
     if giant_count > 0 and hasattr(ball, 'rect'):

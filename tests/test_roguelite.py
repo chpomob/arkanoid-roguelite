@@ -114,13 +114,13 @@ class TestEffects(unittest.TestCase):
     def test_apply_skills_to_ball_speed_reset(self):
         """Test that apply_skills_to_ball correctly sets base speed."""
         ball = mock.MagicMock()
-        ball.speed = 5
+        ball.speed = 8
         
         skills = [Skill(SkillType.SPEED_UP, "Tempo")]
         effects_module.apply_skills_to_ball(ball, skills)
         
-        # Should recalculate based on the stabilizer curve.
-        self.assertAlmostEqual(ball.speed, 5.52)
+        # Should recalculate based on the stabilizer curve (8 * 0.92 = 7.36).
+        self.assertAlmostEqual(ball.speed, 7.36)
 
 
 class TestParticle(unittest.TestCase):
