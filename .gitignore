@@ -78,3 +78,6 @@ htmlcov/
 .coverage
 .coverage.*
 .buildozer/
+.adversarial-loop*
+.adversarial-review*
+findings.json
